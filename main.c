@@ -105,6 +105,8 @@ static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGT
 
 static void ble_nus_chars_received_uart_print(uint8_t * p_data, uint16_t data_len);
 
+static void scan_start(void);
+
 /**@brief NUS UUID. */
 static ble_uuid_t const m_nus_uuid =
 {
@@ -139,6 +141,8 @@ static void leds_init(void)
 }
 
 
+
+
 static void scan_evt_handler(scan_evt_t const * p_scan_evt)
 {
     ret_code_t err_code;
@@ -150,26 +154,26 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
             err_code = p_scan_evt->params.connecting_err.err_code;
             APP_ERROR_CHECK(err_code);
         } break;
-//       case NRF_BLE_SCAN_EVT_CONNECTED:
-//       {
-//            ble_gap_evt_connected_t const * p_connected =
-//                             p_scan_evt->params.connected.p_connected;
-//           // Scan is automatically stopped by the connection.
-//           NRF_LOG_INFO("Connecting to target %02x%02x%02x%02x%02x%02x",
-//                    p_connected->peer_addr.addr[0],
-//                    p_connected->peer_addr.addr[1],
-//                    p_connected->peer_addr.addr[2],
-//                    p_connected->peer_addr.addr[3],
-//                    p_connected->peer_addr.addr[4],
-//                    p_connected->peer_addr.addr[5]
-//                    );
-//       } break;
-//
-//       case NRF_BLE_SCAN_EVT_SCAN_TIMEOUT:
-//       {
-//           NRF_LOG_INFO("Scan timed out.");
-//           scan_start();
-//       } break;
+       case NRF_BLE_SCAN_EVT_CONNECTED:
+       {
+            ble_gap_evt_connected_t const * p_connected =
+                             p_scan_evt->params.connected.p_connected;
+           // Scan is automatically stopped by the connection.
+           NRF_LOG_INFO("Connecting to target %02x%02x%02x%02x%02x%02x",
+                    p_connected->peer_addr.addr[0],
+                    p_connected->peer_addr.addr[1],
+                    p_connected->peer_addr.addr[2],
+                    p_connected->peer_addr.addr[3],
+                    p_connected->peer_addr.addr[4],
+                    p_connected->peer_addr.addr[5]
+                    );
+       } break;
+
+       case NRF_BLE_SCAN_EVT_SCAN_TIMEOUT:
+       {
+           NRF_LOG_INFO("Scan timed out.");
+           scan_start();
+       } break;
         default:
             break;
     }
@@ -288,12 +292,14 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                                                 p_gap_evt->conn_handle,
                                                 NULL);
             APP_ERROR_CHECK(err_code);
-//            err_code = ble_nus_c_handles_assign(&m_ble_nus_c, p_ble_evt->evt.gap_evt.conn_handle, NULL);
-//            APP_ERROR_CHECK(err_code);
-//
-//            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-//            APP_ERROR_CHECK(err_code);
 
+            err_code = ble_nus_c_handles_assign(&m_ble_nus_c, p_ble_evt->evt.gap_evt.conn_handle, NULL);
+            APP_ERROR_CHECK(err_code);
+
+            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+            APP_ERROR_CHECK(err_code);
+            
+            memset(&m_db_disc,0,sizeof(m_db_disc));
             err_code = ble_db_discovery_start(&m_db_disc[p_gap_evt->conn_handle],
                                               p_gap_evt->conn_handle);
             if (err_code != NRF_ERROR_BUSY)
@@ -340,10 +346,10 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             }
 
             // Start scanning.
-            scan_start();
+  //          scan_start();
 
             // Turn on the LED for indicating scanning.
-            bsp_board_led_on(CENTRAL_SCANNING_LED);
+  //          bsp_board_led_on(CENTRAL_SCANNING_LED);
 
         } break;
 
@@ -529,7 +535,7 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             APP_ERROR_CHECK(err_code);
 
             err_code = ble_nus_c_tx_notif_enable(p_ble_nus_c);
-            APP_ERROR_CHECK(err_code);
+            //APP_ERROR_CHECK(err_code);
             NRF_LOG_INFO("Connected to device with Nordic UART Service.");
             break;
 
@@ -641,6 +647,7 @@ static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
                   p_evt->conn_handle);
 
     ble_lbs_on_db_disc_evt(&m_lbs_c[p_evt->conn_handle], p_evt);
+    ble_nus_c_on_db_disc_evt(&m_ble_nus_c, p_evt);
 }
 
 

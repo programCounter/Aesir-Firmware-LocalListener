@@ -101,8 +101,8 @@ BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE
 
 static char const m_target_periph_name[] = "AEsir";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
 
-static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
-
+//static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
+static uint16_t m_ble_nus_max_data_len = NRF_SDH_BLE_GATT_MAX_MTU_SIZE - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 static void ble_nus_chars_received_uart_print(uint8_t * p_data, uint16_t data_len);
 
 static void scan_start(void);
@@ -113,6 +113,8 @@ static ble_uuid_t const m_nus_uuid =
     .uuid = BLE_UUID_NUS_SERVICE,
     .type = NUS_SERVICE_UUID_TYPE
 };
+static uint8_t receivedData[255];
+    
 
 /**@brief Function for handling asserts in the SoftDevice.
  *
@@ -540,7 +542,10 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             break;
 
         case BLE_NUS_C_EVT_NUS_TX_EVT:
-            ble_nus_chars_received_uart_print(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
+            NRF_LOG_INFO("data from NUS.");
+            memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
+            //memcpy(receivedData,p_ble_nus_evt->p_data,251);
+            //ble_nus_chars_received_uart_print(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
             break;
 
         case BLE_NUS_C_EVT_DISCONNECTED:
@@ -734,39 +739,41 @@ static void gatt_init(void)
 static void ble_nus_chars_received_uart_print(uint8_t * p_data, uint16_t data_len)
 {
     ret_code_t ret_val;
+    
 
-    NRF_LOG_DEBUG("Receiving data.");
-    NRF_LOG_HEXDUMP_DEBUG(p_data, data_len);
-
-    for (uint32_t i = 0; i < data_len; i++)
-    {
-        do
-        {
-            ret_val = app_uart_put(p_data[i]);
-            if ((ret_val != NRF_SUCCESS) && (ret_val != NRF_ERROR_BUSY))
-            {
-                NRF_LOG_ERROR("app_uart_put failed for index 0x%04x.", i);
-                APP_ERROR_CHECK(ret_val);
-            }
-        } while (ret_val == NRF_ERROR_BUSY);
-    }
-    if (p_data[data_len-1] == '\r')
-    {
-        while (app_uart_put('\n') == NRF_ERROR_BUSY);
-    }
-    if (ECHOBACK_BLE_UART_DATA)
-    {
-        // Send data back to the peripheral.
-        do
-        {
-            ret_val = ble_nus_c_string_send(&m_ble_nus_c, p_data, data_len);
-            if ((ret_val != NRF_SUCCESS) && (ret_val != NRF_ERROR_BUSY))
-            {
-                NRF_LOG_ERROR("Failed sending NUS message. Error 0x%x. ", ret_val);
-                APP_ERROR_CHECK(ret_val);
-            }
-        } while (ret_val == NRF_ERROR_BUSY);
-    }
+    memcpy(*receivedData,*p_data,data_len);
+//    NRF_LOG_DEBUG("Receiving data.");
+//    NRF_LOG_HEXDUMP_DEBUG(p_data, data_len);
+//
+//    for (uint32_t i = 0; i < data_len; i++)
+//    {
+//        do
+//        {
+//            ret_val = app_uart_put(p_data[i]);
+//            if ((ret_val != NRF_SUCCESS) && (ret_val != NRF_ERROR_BUSY))
+//            {
+//                NRF_LOG_ERROR("app_uart_put failed for index 0x%04x.", i);
+//                APP_ERROR_CHECK(ret_val);
+//            }
+//        } while (ret_val == NRF_ERROR_BUSY);
+//    }
+//    if (p_data[data_len-1] == '\r')
+//    {
+//        while (app_uart_put('\n') == NRF_ERROR_BUSY);
+//    }
+//    if (ECHOBACK_BLE_UART_DATA)
+//    {
+//        // Send data back to the peripheral.
+//        do
+//        {
+//            ret_val = ble_nus_c_string_send(&m_ble_nus_c, p_data, data_len);
+//            if ((ret_val != NRF_SUCCESS) && (ret_val != NRF_ERROR_BUSY))
+//            {
+//                NRF_LOG_ERROR("Failed sending NUS message. Error 0x%x. ", ret_val);
+//                APP_ERROR_CHECK(ret_val);
+//            }
+//        } while (ret_val == NRF_ERROR_BUSY);
+//    }
 }
 
 

@@ -208,10 +208,10 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pa
       memcpy(BSI_Attribute.BSI_Name, rx_data_8bit, 16);
       //strncat(BSI_Attribute.BSI_Name, &rx_data_8bit[0], 16);  //first 16 bits are reserved for the friendly name
       strcat(BSI_Attribute.BSI_Name, ".txt");
-      memmove(rx_data_8bit, &rx_data_8bit[16], 240);      //shift the array by 16 
-      strncat(BSI_Attribute.Start_Time, rx_data_8bit, 6); //next 2 bits are reserved for the time
-      memmove(rx_data_8bit, &rx_data_8bit[6], 234);       //shift the array by 2
-      memset(&rx_data_8bit[232], 0, 22);                  //set last 22 values of array to null as they are no longer valid. 
+      memmove(rx_data_8bit, &rx_data_8bit[16], (rx_length - 16));      //shift the array by 16 
+      strncat(BSI_Attribute.Start_Time, rx_data_8bit, 6); //next 6 bits are reserved for the time
+      memmove(rx_data_8bit, &rx_data_8bit[6], (rx_length - 22));       //shift the array by 6
+      memset(&rx_data_8bit[rx_length-22], 0, 22);                  //set last 22 values of array to null as they are no longer valid. 
       rx_length = rx_length - 22;                                      //adjust length the proper value
     }
     

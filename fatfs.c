@@ -30,7 +30,7 @@ Currently the variable that must be written to are:
 #define SDC_MISO_PIN    NRF_GPIO_PIN_MAP(0,4)  ///< SDC serial data out (DO) pin.
 #define SDC_CS_PIN      NRF_GPIO_PIN_MAP(0,26)  ///< SDC chip select (CS) pin.
 
-
+#define DEBUG
 
 static FIL file;
 
@@ -159,28 +159,32 @@ void fatfs_write(fatfs_write_buffer_t fatfs_buffer)
 {
     uint32_t bytes_written;
     FRESULT ff_result;
-    
+
+    #ifdef DEBUG
     printf("Opening File BSI_Name... \n");
+    #endif
 
     ff_result = f_open(&file, BSI_Attribute.BSI_Name, FA_READ | FA_WRITE | FA_OPEN_APPEND);
     if (ff_result != FR_OK)
     {
-      //NRF_LOG_INFO("Unable to open or create file: " FILE_NAME ".");
-      printf("Unable to open or create file: BSI_Name.\n");      
+      #ifdef DEBUG
+      printf("Unable to open or create file: BSI_Name.\n");  
+      #endif
     }
     
     printf("Writing to file BSI_Name...\n");
     ff_result = f_write(&file, fatfs_buffer.data, fatfs_buffer.length, (UINT *) &bytes_written);
     if (ff_result != FR_OK)
     {
-      //NRF_LOG_INFO("Write failed\r\n.");
+      #ifdef DEBUG
       printf("Write failed\r\n.");
-      
+      #endif
     }
    else
    {
-     //NRF_LOG_INFO("%d bytes written.", bytes_written);
+      #ifdef DEBUG
       printf("%d bytes written.\n", bytes_written);
+      #endif
       fatfs_buffer.length = 0;
    }
 
@@ -201,7 +205,9 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pa
     //8 bytes for time
     //only run on initial call 
     //for debugging
+    #ifdef DEBUG
     first_rx = true;  
+    #endif
 
     if(first_rx)
     {
@@ -216,15 +222,16 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pa
     }
     
     //for debugging
+    #ifdef DEBUG
     first_rx = false;
-    
-    memset(fatfs_write_buffer.data, 0, SDC_BUFFER_SIZE); //clear write buffer
-    //memcpy(rx_data_16bit, rx_data_8bit, rx_length); //convert data received to 16 bit, should be rx_length?
-    for(uint16_t count = 0; count <= rx_length; count += 2)
+    #endif
+
+    memset(fatfs_write_buffer.data, 0, SDC_BUFFER_SIZE);      //clear write buffer
+    //memcpy(rx_data_16bit, rx_data_8bit, rx_length);         //convert data received to 16 bit big endian
+    for(uint16_t count = 0; count <= rx_length; count += 2)   //convert data received to 16 bit lil-endian
     {
       rx_data_16bit[count/2] = (rx_data_8bit[count] << 8) + rx_data_8bit[count+1];
     }
-    //b = (a[0] << 8) + a[1];
 
     for(uint16_t inc = 0; inc < (rx_length/2); inc += 2)
     {
@@ -237,7 +244,7 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pa
       current_time(BSI_Data.CountMin, CurrentTimeStr, CurrentTimeTemp);
 
       utoa(BSI_Data.SensorValue, SensorValStr, 10); //convert sensor data to buffer data
-      utoa(BSI_Data.SensorCh, TempStr, 10);
+      utoa(BSI_Data.SensorCh, TempStr, 10);         //convert sensor channel to buffer data
       
        //convert format to [time,ch,data]
       strcat(fatfs_write_buffer.data, CurrentTimeStr);
@@ -245,10 +252,12 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pa
       strcat(fatfs_write_buffer.data, TempStr);
       strcat(fatfs_write_buffer.data, ",");
       strncat(fatfs_write_buffer.data, SensorValStr, 4);
-      strcat(fatfs_write_buffer.data, "\n");
+      strcat(fatfs_write_buffer.data, "\n");              //format time, channel, data \n
       
       fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);  
+      #ifdef DEBUG
       printf("%d \n", inc);
+      #endif
       if(fatfs_write_buffer.length >= (SDC_BUFFER_SIZE - 25)) //if buffer is full, write data
       {   
           //fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);        //update length
@@ -262,9 +271,9 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pa
     fatfs_write(fatfs_write_buffer);
 
 //test header
-//uint8_t byte_array_hex[256] = {'B', 'S', 'I', 'T', 'E', 'S', 'T', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+//    uint8_t byte_array_hex[254] = {'B', 'S', 'I', 'T', 'E', 'S', 'T', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 //                                  20, 19, 11, 18, 11, 22, 
-//                                  0x00, 0x01, 0x0f, 0xf1, 
+//                                  0x0, 0x1, 0x0f, 0xf1, 
 //                                  0x0, 0x2, 0x1c, 0x11, 
 //                                  0x0, 0x3, 0x20, 0x22, 
 //                                  0x0, 0x4, 0x24, 0x21, 
@@ -273,57 +282,57 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pa
 //                                  0x0, 0x7, 0x30, 0x32, 
 //                                  0x0, 0x8, 0x34, 0x31, 
 //                                  0x0, 0x9, 0x38, 0x32, 
-//                                  0x1, 0x0, 0x3c, 0x31, 
-//                                  0x1, 0x1, 0x40, 0x42, 
-//                                  0x1, 0x2, 0x44, 0x41, 
-//                                  0x1, 0x3, 0x48, 0x42, 
-//                                  0x1, 0x4, 0x4c, 0x41, 
-//                                  0x1, 0x5, 0x50, 0x52, 
-//                                  0x1, 0x6, 0x54, 0x51, 
-//                                  0x1, 0x7, 0x58, 0x52, 
-//                                  0x1, 0x8, 0x5c, 0x51, 
-//                                  0x1, 0x9, 0x60, 0x62, 
-//                                  0x2, 0x0, 0x64, 0x61, 
-//                                  0x2, 0x1, 0x68, 0x62, 
-//                                  0x2, 0x2, 0x6c, 0x61, 
-//                                  0x2, 0x3, 0x70, 0x72, 
-//                                  0x2, 0x4, 0x74, 0x71, 
-//                                  0x2, 0x5, 0x78, 0x72, 
-//                                  0x2, 0x6, 0x7c, 0x71, 
-//                                  0x2, 0x7, 0x80, 0x82, 
-//                                  0x2, 0x8, 0x84, 0x81, 
-//                                  0x2, 0x9, 0x88, 0x82, 
-//                                  0x3, 0x0, 0x8c, 0x81, 
-//                                  0x3, 0x1, 0x90, 0x92, 
-//                                  0x3, 0x2, 0x94, 0x91, 
-//                                  0x3, 0x3, 0x98, 0x92, 
-//                                  0x3, 0x4, 0x9c, 0x91, 
-//                                  0x3, 0x5, 0xa0, 0xa2, 
-//                                  0x3, 0x6, 0xa4, 0xa1, 
-//                                  0x3, 0x7, 0xa8, 0xa2, 
-//                                  0x3, 0x8, 0xac, 0xa1, 
-//                                  0x3, 0x9, 0xb0, 0xb2, 
-//                                  0x4, 0x0, 0xb4, 0xb1, 
-//                                  0x4, 0x1, 0xb8, 0xb2, 
-//                                  0x4, 0x2, 0xbc, 0xb1, 
-//                                  0x4, 0x3, 0xc0, 0xc2, 
-//                                  0x4, 0x4, 0xc4, 0xc1, 
-//                                  0x4, 0x5, 0xc8, 0xc2, 
-//                                  0x4, 0x6, 0xcc, 0xc1, 
-//                                  0x4, 0x7, 0xd0, 0xd2, 
-//                                  0x4, 0x8, 0xd4, 0xd1, 
-//                                  0x4, 0x9, 0xd8, 0xd2, 
-//                                  0x5, 0x0, 0xdc, 0xd1, 
-//                                  0x5, 0x1, 0xe0, 0xe2, 
-//                                  0x5, 0x2, 0xe4, 0xe1,
-//                                  0x5, 0x3, 0xe8, 0xe2, 
-//                                  0x5, 0x4, 0xec, 0xe1, 
-//                                  0x5, 0x5, 0xf0, 0xf2, 
-//                                  0x5, 0x6, 0xf4, 0xf1, 
-//                                  0x5, 0x7, 0xf8, 0xf2, 
-//                                  0x5, 0x8, 0xfc, 0xf1, 
-//                                  0x5, 0x9};
-//    uint16_t byte_array_hex_length = 256;
+//                                  0x0, 0xa, 0x3c, 0x31, 
+//                                  0x0, 0xb, 0x40, 0x42, 
+//                                  0x0, 0xc, 0x44, 0x41, 
+//                                  0x0, 0xd, 0x48, 0x42, 
+//                                  0x0, 0xe, 0x4c, 0x41, 
+//                                  0x0, 0xf, 0x50, 0x52, 
+//                                  0x0, 0x10, 0x54, 0x51, 
+//                                  0x0, 0x11, 0x58, 0x52, 
+//                                  0x0, 0x12, 0x5c, 0x51, 
+//                                  0x0, 0x13, 0x60, 0x62, 
+//                                  0x0, 0x14, 0x64, 0x61, 
+//                                  0x0, 0x15, 0x68, 0x62, 
+//                                  0x0, 0x16, 0x6c, 0x61, 
+//                                  0x0, 0x17, 0x70, 0x72, 
+//                                  0x0, 0x18, 0x74, 0x71, 
+//                                  0x0, 0x19, 0x78, 0x72, 
+//                                  0x0, 0x1a, 0x7c, 0x71, 
+//                                  0x0, 0x1b, 0x80, 0x82, 
+//                                  0x0, 0x1c, 0x84, 0x81, 
+//                                  0x0, 0x1d, 0x88, 0x82, 
+//                                  0x0, 0x1e, 0x8c, 0x81, 
+//                                  0x0, 0x1f, 0x90, 0x92, 
+//                                  0x0, 0x20, 0x94, 0x91, 
+//                                  0x0, 0x21, 0x98, 0x92, 
+//                                  0x0, 0x22, 0x9c, 0x91, 
+//                                  0x0, 0x23, 0xa0, 0xa2, 
+//                                  0x0, 0x24, 0xa4, 0xa1, 
+//                                  0x0, 0x25, 0xa8, 0xa2, 
+//                                  0x0, 0x26, 0xac, 0xa1, 
+//                                  0x0, 0x27, 0xb0, 0xb2, 
+//                                  0x0, 0x28, 0xb4, 0xb1, 
+//                                  0x0, 0x29, 0xb8, 0xb2, 
+//                                  0x0, 0x2a, 0xbc, 0xb1, 
+//                                  0x0, 0x2b, 0xc0, 0xc2, 
+//                                  0x0, 0x2c, 0xc4, 0xc1, 
+//                                  0x0, 0x2d, 0xc8, 0xc2, 
+//                                  0x0, 0x2e, 0xcc, 0xc1, 
+//                                  0x0, 0x2f, 0xd0, 0xd2, 
+//                                  0x0, 0x30, 0xd4, 0xd1, 
+//                                  0x0, 0x31, 0xd8, 0xd2, 
+//                                  0x0, 0x32, 0xdc, 0xd1, 
+//                                  0x0, 0x33, 0xe0, 0xe2, 
+//                                  0x0, 0x34, 0xe4, 0xe1,
+//                                  0x0, 0x35, 0xe8, 0xe2, 
+//                                  0x0, 0x36, 0xec, 0xe1, 
+//                                  0x0, 0x37, 0xf0, 0xf2, 
+//                                  0x0, 0x38, 0xf4, 0xf1, 
+//                                  0x0, 0x39, 0xf8, 0xf2, 
+//                                  0x0, 0x3a, 0xfc, 0xf1, 
+//                                  };
+//    uint16_t byte_array_hex_length = 254;
 }
 
 /**

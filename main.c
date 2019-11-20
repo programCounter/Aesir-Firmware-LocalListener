@@ -543,7 +543,13 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
 
         case BLE_NUS_C_EVT_NUS_TX_EVT:
             NRF_LOG_INFO("data from NUS.");
+            uint16_t numBytes;
             memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
+            if(receivedData[0] == '#' && receivedData[1] == '#' receivedData[0] == '#')
+            {
+              memcpy(&numBytes,&receivedData[3],2);//Copy the number of expected bytes to the numBytes var.
+            }
+
             //memcpy(receivedData,p_ble_nus_evt->p_data,251);
             //ble_nus_chars_received_uart_print(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
             break;

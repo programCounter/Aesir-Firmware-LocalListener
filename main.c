@@ -527,6 +527,8 @@ static void uart_init(void)
  */
 
 /**@snippet [Handling events from the ble_nus_c module] */
+uint16_t numBytes; //Holds the total number of bytes expected
+uint16_t currBytes: //Tracks the current amount of data recived since "###" was sent
 static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t const * p_ble_nus_evt)
 {
     ret_code_t err_code;
@@ -545,7 +547,7 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
 
         case BLE_NUS_C_EVT_NUS_TX_EVT:
             NRF_LOG_INFO("data from NUS.");
-            uint16_t numBytes;
+            
             memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
             if(receivedData[0] == '#' && receivedData[1] == '#' receivedData[0] == '#')
             {

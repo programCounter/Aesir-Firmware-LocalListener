@@ -36,4 +36,4 @@ void fatfs_init(void);
 void fatfs_write(fatfs_write_buffer_t fatfs_buffer);
 void data_ch_decode(BSI_Data_t * tempValue);
 void current_time(uint16_t minutes, char *CurrentTimeString, uint8_t *CurrentTime);
-void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length);
+void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length, bool first_rx);

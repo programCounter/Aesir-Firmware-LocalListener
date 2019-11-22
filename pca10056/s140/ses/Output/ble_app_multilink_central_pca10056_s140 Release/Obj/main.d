@@ -1,19 +1,16 @@
 Output/ble_app_multilink_central_pca10056_s140\ Release/Obj/main.o: \
- C:\dev\nRF5_SDK_15.3.0\examples\ble_peripheral\Aesir-Firmware-LocalListener\main.c \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stdint.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stdio.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/__crossworks.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/string.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stdbool.h \
+ E:\dev\nRF5_SDK_153\nRF5_SDK_15.3.0_59ac345\examples\ble_central\Aesir-Firmware-LocalListener\main.c \
+ E:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stdint.h \
+ E:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stdio.h \
+ E:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/__crossworks.h \
+ E:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/string.h \
+ E:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stdbool.h \
  ../../../../../../components/libraries/util/nordic_common.h \
- ../../../../../../components/softdevice/common/nrf_sdh.h \
- ../config/sdk_config.h \
- ../../../../../../components/libraries/util/sdk_errors.h \
- ../../../../../../components/softdevice/s140/headers/nrf_error.h \
- ../../../../../../components/libraries/experimental_section_vars/nrf_section_iter.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stddef.h \
- ../../../../../../components/libraries/experimental_section_vars/nrf_section.h \
- ../../../../../../components/libraries/util/nrf_assert.h \
+ ../../../../../../components/libraries/delay/nrf_delay.h \
+ ../../../../../../modules/nrfx/nrfx.h \
+ ../../../../../../integration/nrfx/nrfx_config.h ../config/sdk_config.h \
+ ../../../../../../modules/nrfx/drivers/nrfx_common.h \
+ E:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stddef.h \
  ../../../../../../modules/nrfx/mdk/nrf.h \
  ../../../../../../modules/nrfx/mdk/nrf52840.h \
  ../../../../../../components/toolchain/cmsis/include/core_cm4.h \
@@ -26,15 +23,40 @@ Output/ble_app_multilink_central_pca10056_s140\ Release/Obj/main.o: \
  ../../../../../../modules/nrfx/mdk/nrf51_to_nrf52840.h \
  ../../../../../../modules/nrfx/mdk/nrf52_to_nrf52840.h \
  ../../../../../../modules/nrfx/mdk/compiler_abstraction.h \
+ ../../../../../../modules/nrfx/mdk/nrf_peripherals.h \
+ ../../../../../../modules/nrfx/mdk/nrf52840_peripherals.h \
+ ../../../../../../integration/nrfx/nrfx_glue.h \
+ ../../../../../../integration/nrfx/legacy/apply_old_config.h \
+ ../../../../../../modules/nrfx/soc/nrfx_irqs.h \
+ ../../../../../../modules/nrfx/soc/nrfx_irqs_nrf52840.h \
+ ../../../../../../components/libraries/util/nrf_assert.h \
  ../../../../../../components/libraries/util/app_util.h \
  ../../../../../../modules/nrfx/mdk/compiler_abstraction.h \
  ../../../../../../components/libraries/util/nordic_common.h \
  ../../../../../../components/softdevice/s140/headers/nrf52/nrf_mbr.h \
  ../../../../../../components/softdevice/s140/headers/nrf_svc.h \
- ../../../../../../components/softdevice/common/nrf_sdh_ble.h \
- ../../../../../../components/softdevice/s140/headers/ble.h \
+ ../../../../../../components/libraries/util/app_util_platform.h \
+ ../../../../../../components/softdevice/s140/headers/nrf_soc.h \
  ../../../../../../components/softdevice/s140/headers/nrf_svc.h \
  ../../../../../../components/softdevice/s140/headers/nrf_error.h \
+ ../../../../../../components/softdevice/s140/headers/nrf_error_soc.h \
+ ../../../../../../components/softdevice/s140/headers/nrf_nvic.h \
+ ../../../../../../components/libraries/util/nrf_assert.h \
+ ../../../../../../components/libraries/util/app_error.h \
+ ../../../../../../components/libraries/util/sdk_errors.h \
+ ../../../../../../components/softdevice/s140/headers/nrf_error.h \
+ ../../../../../../components/libraries/util/app_error_weak.h \
+ ../../../../../../modules/nrfx/soc/nrfx_coredep.h \
+ ../../../../../../modules/nrfx/soc/nrfx_atomic.h \
+ ../../../../../../components/libraries/util/sdk_errors.h \
+ ../../../../../../components/libraries/util/sdk_resources.h \
+ ../../../../../../components/softdevice/s140/headers/nrf_sd_def.h \
+ ../../../../../../modules/nrfx/drivers/nrfx_errors.h \
+ ../../../../../../components/softdevice/common/nrf_sdh.h \
+ ../../../../../../components/libraries/experimental_section_vars/nrf_section_iter.h \
+ ../../../../../../components/libraries/experimental_section_vars/nrf_section.h \
+ ../../../../../../components/softdevice/common/nrf_sdh_ble.h \
+ ../../../../../../components/softdevice/s140/headers/ble.h \
  ../../../../../../components/softdevice/s140/headers/ble_err.h \
  ../../../../../../components/softdevice/s140/headers/ble_gap.h \
  ../../../../../../components/softdevice/s140/headers/ble_hci.h \
@@ -46,32 +68,10 @@ Output/ble_app_multilink_central_pca10056_s140\ Release/Obj/main.o: \
  ../../../../../../components/softdevice/s140/headers/ble_gatts.h \
  ../../../../../../components/libraries/timer/app_timer.h \
  ../../../../../../components/libraries/util/app_error.h \
- ../../../../../../components/libraries/util/sdk_errors.h \
- ../../../../../../components/libraries/util/app_error_weak.h \
  ../../../../../../components/libraries/bsp/bsp_btn_ble.h \
  ../../../../../../components/libraries/bsp/bsp.h \
  ../../../../../../components/boards/boards.h \
  ../../../../../../modules/nrfx/hal/nrf_gpio.h \
- ../../../../../../modules/nrfx/nrfx.h \
- ../../../../../../integration/nrfx/nrfx_config.h \
- ../../../../../../modules/nrfx/drivers/nrfx_common.h \
- ../../../../../../modules/nrfx/mdk/nrf_peripherals.h \
- ../../../../../../modules/nrfx/mdk/nrf52840_peripherals.h \
- ../../../../../../integration/nrfx/nrfx_glue.h \
- ../../../../../../integration/nrfx/legacy/apply_old_config.h \
- ../../../../../../modules/nrfx/soc/nrfx_irqs.h \
- ../../../../../../modules/nrfx/soc/nrfx_irqs_nrf52840.h \
- ../../../../../../components/libraries/util/app_util_platform.h \
- ../../../../../../components/softdevice/s140/headers/nrf_soc.h \
- ../../../../../../components/softdevice/s140/headers/nrf_error_soc.h \
- ../../../../../../components/softdevice/s140/headers/nrf_nvic.h \
- ../../../../../../components/libraries/util/nrf_assert.h \
- ../../../../../../components/libraries/util/app_error.h \
- ../../../../../../modules/nrfx/soc/nrfx_coredep.h \
- ../../../../../../modules/nrfx/soc/nrfx_atomic.h \
- ../../../../../../components/libraries/util/sdk_resources.h \
- ../../../../../../components/softdevice/s140/headers/nrf_sd_def.h \
- ../../../../../../modules/nrfx/drivers/nrfx_errors.h \
  ../../../../../../components/boards/pca10056.h \
  ../../../../../../components/libraries/button/app_button.h \
  ../../../../../../components/softdevice/s140/headers/ble_hci.h \
@@ -106,9 +106,19 @@ Output/ble_app_multilink_central_pca10056_s140\ Release/Obj/main.o: \
  ../../../../../../components/libraries/log/src/nrf_log_ctrl_internal.h \
  ../../../../../../components/libraries/log/nrf_log_backend_interface.h \
  ../../../../../../components/libraries/memobj/nrf_memobj.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stdlib.h \
+ E:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stdlib.h \
  ../../../../../../components/libraries/balloc/nrf_balloc.h \
  ../../../../../../components/libraries/log/nrf_log_default_backends.h \
  ../../../../../../components/libraries/uart/app_uart.h \
  ../../../../../../components/softdevice/common/nrf_sdh_soc.h \
- ../../../../../../components/ble/ble_services/ble_nus_c/ble_nus_c.h
+ ../../../../../../components/ble/ble_services/ble_nus_c/ble_nus_c.h \
+ E:\dev\nRF5_SDK_153\nRF5_SDK_15.3.0_59ac345\examples\ble_central\Aesir-Firmware-LocalListener\fatfs.h \
+ ../../../../../../components/libraries/bsp/bsp.h \
+ ../../../../../../external/fatfs/src/ff.h \
+ ../../../../../../external/fatfs/src/integer.h \
+ ../../../../../../external/fatfs/src/ffconf.h \
+ ../../../../../../external\fatfs\port/diskio_blkdev.h \
+ ../../../../../../external/fatfs/src/diskio.h \
+ ../../../../../../components\libraries\block_dev/nrf_block_dev.h \
+ ../../../../../../components\libraries\block_dev\sdc/nrf_block_dev_sdc.h \
+ ../../../../../../components/libraries/sdcard/app_sdcard.h

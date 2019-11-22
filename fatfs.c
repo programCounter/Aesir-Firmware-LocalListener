@@ -191,10 +191,10 @@ void fatfs_write(fatfs_write_buffer_t fatfs_buffer)
    (void) f_close(&file);
 }
 
-void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length)//need to pass array and length
+void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length, bool first_rx)//need to pass array and length
 {
     uint16_t rx_data_16bit[rx_length];
-    bool first_rx;         //for testing this may need to be global for final implementation
+    //bool first_rx;         //for testing this may need to be global for final implementation
     char SensorValStr[6];
     uint8_t CurrentTimeTemp[8];
     char CurrentTimeStr[20];

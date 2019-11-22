@@ -528,7 +528,7 @@ static void uart_init(void)
 
 /**@snippet [Handling events from the ble_nus_c module] */
 uint16_t numBytes; //Holds the total number of bytes expected
-uint16_t currBytes: //Tracks the current amount of data recived since "###" was sent
+uint16_t currBytes; //Tracks the current amount of data recived since "###" was sent
 static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t const * p_ble_nus_evt)
 {
     ret_code_t err_code;
@@ -546,12 +546,28 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             break;
 
         case BLE_NUS_C_EVT_NUS_TX_EVT:
+
+              //redefine the extern struct in fatfs.h // Included here for reference
+//            BSI_Att_t BSI_Attribute = {
+//            .BSI_Name = {},
+//            .Start_Time = {},
+//            };
+
+            //There is a max of 242 bytes in each uart packet, 29 bytes of the first packet is used for admin data. 
             NRF_LOG_INFO("data from NUS.");
-            
             memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
-            if(receivedData[0] == '#' && receivedData[1] == '#' receivedData[0] == '#')
+            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
             {
-              memcpy(&numBytes,&receivedData[3],2);//Copy the number of expected bytes to the numBytes var.
+              memcpy(&numBytes,&receivedData[3],2); //Copy the number of expected bytes to the numBytes var.
+              numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
+
+              fatfs_bsi_data_write(&receivedData[5],numBytes,true);
+            }
+            else if(numBytes > 0)//We are still expecting data from a current data set.
+            {
+              //memcpy(&bsiData,&receivedData,numBytes);//put the remaining data into an array and pass it to "fatfs_bsi_data_write"
+              fatfs_bsi_data_write(&receivedData,numBytes,false);
+              numBytes -= sizeof(receivedData);
             }
 
             //memcpy(receivedData,p_ble_nus_evt->p_data,251);
@@ -906,7 +922,7 @@ int main(void)
 
     // Start execution.
     NRF_LOG_INFO("Multilink example started.");
-    fatfs_bsi_data_write(&byte_array_hex, byte_array_hex_length);
+    fatfs_bsi_data_write(&byte_array_hex, byte_array_hex_length,false);
     //scan_start();
 
     for (;;)

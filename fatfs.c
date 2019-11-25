@@ -161,29 +161,29 @@ void fatfs_write(fatfs_write_buffer_t fatfs_buffer)
     FRESULT ff_result;
 
     #ifdef DEBUG
-    printf("Opening File BSI_Name... \n");
+    //printf("Opening File BSI_Name... \n");
     #endif
 
     ff_result = f_open(&file, BSI_Attribute.BSI_Name, FA_READ | FA_WRITE | FA_OPEN_APPEND);
     if (ff_result != FR_OK)
     {
       #ifdef DEBUG
-      printf("Unable to open or create file: BSI_Name.\n");  
+      //printf("Unable to open or create file: BSI_Name.\n");  
       #endif
     }
     
-    printf("Writing to file BSI_Name...\n");
+    //printf("Writing to file BSI_Name...\n");
     ff_result = f_write(&file, fatfs_buffer.data, fatfs_buffer.length, (UINT *) &bytes_written);
     if (ff_result != FR_OK)
     {
       #ifdef DEBUG
-      printf("Write failed\r\n.");
+      //printf("Write failed\r\n.");
       #endif
     }
    else
    {
       #ifdef DEBUG
-      printf("%d bytes written.\n", bytes_written);
+      //printf("%d bytes written.\n", bytes_written);
       #endif
       fatfs_buffer.length = 0;
    }
@@ -256,7 +256,7 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length, bool first_
       
       fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);  
       #ifdef DEBUG
-      printf("%d \n", inc);
+      //printf("%d \n", inc);
       #endif
       if(fatfs_write_buffer.length >= (SDC_BUFFER_SIZE - 25)) //if buffer is full, write data
       {   
@@ -358,7 +358,7 @@ void fatfs_init()
     if (disk_state)
     {
         //NRF_LOG_INFO("Disk initialization failed.");
-        printf("Disk initialization failed.\n");
+        //printf("Disk initialization failed.\n");
         return;
     }
 
@@ -370,7 +370,7 @@ void fatfs_init()
     if (ff_result)
     {
         //NRF_LOG_INFO("Mount failed.");
-        printf("Mount failed.\n");
+        //printf("Mount failed.\n");
         return;
     }
 
@@ -379,7 +379,7 @@ void fatfs_init()
     if (ff_result)
     {
         //NRF_LOG_INFO("Directory listing failed!");
-        printf("Directory listing failed!\n");
+        //printf("Directory listing failed!\n");
         return;
     }
 
@@ -389,7 +389,7 @@ void fatfs_init()
         if (ff_result != FR_OK)
         {
             //NRF_LOG_INFO("Directory read failed.");
-            printf("Directory read failed.\n");
+            //printf("Directory read failed.\n");
             return;
         }
 
@@ -407,7 +407,7 @@ void fatfs_init()
     }
     while (fno.fname[0]);
     //NRF_LOG_RAW_INFO("");
-    printf("fatfs init complete\n");
+    //printf("fatfs init complete\n");
     return;
 }
 

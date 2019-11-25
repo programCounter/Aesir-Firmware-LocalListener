@@ -556,6 +556,13 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             //There is a max of 242 bytes in each uart packet, 29 bytes of the first packet is used for admin data. 
             NRF_LOG_INFO("data from NUS.");
             memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
+            //NRF_LOG_HEXDUMP_DEBUG(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
+            //NRF_LOG_INFO(receivedData);
+            for(int nn = 0; nn < 255; nn++)
+            {
+              NRF_LOG_INFO("0x%X(%d)", receivedData[nn], 255);
+            }
+            
             if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
             {
               memcpy(&numBytes,&receivedData[3],2); //Copy the number of expected bytes to the numBytes var.
@@ -922,8 +929,8 @@ int main(void)
 
     // Start execution.
     NRF_LOG_INFO("Multilink example started.");
-    fatfs_bsi_data_write(&byte_array_hex, byte_array_hex_length,false);
-    //scan_start();
+    //fatfs_bsi_data_write(&byte_array_hex, byte_array_hex_length,false);
+    scan_start();
 
     for (;;)
     {

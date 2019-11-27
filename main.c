@@ -101,7 +101,8 @@ BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Dat
 NRF_BLE_SCAN_DEF(m_scan);                                               /**< Scanning Module instance. */
 BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE Nordic UART Service (NUS) client instance. */
 
-static char const m_target_periph_name[] = "AEsir";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
+static char const m_target_periph_name[] = "AEsir9";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
+static bool data_rx;
 
 //static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 static uint16_t m_ble_nus_max_data_len = NRF_SDH_BLE_GATT_MAX_MTU_SIZE - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -532,7 +533,7 @@ uint16_t currBytes; //Tracks the current amount of data recived since "###" was 
 static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t const * p_ble_nus_evt)
 {
     ret_code_t err_code;
-
+    
     switch (p_ble_nus_evt->evt_type)
     {
         case BLE_NUS_C_EVT_DISCOVERY_COMPLETE:
@@ -562,20 +563,20 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             {
               NRF_LOG_INFO("0x%X(%d)", receivedData[nn], 255);
             }
-            
-            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
-            {
-              memcpy(&numBytes,&receivedData[3],2); //Copy the number of expected bytes to the numBytes var.
-              numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
-
-              fatfs_bsi_data_write(&receivedData[5],numBytes,true);
-            }
-            else if(numBytes > 0)//We are still expecting data from a current data set.
-            {
-              //memcpy(&bsiData,&receivedData,numBytes);//put the remaining data into an array and pass it to "fatfs_bsi_data_write"
-              fatfs_bsi_data_write(&receivedData,numBytes,false);
-              numBytes -= sizeof(receivedData);
-            }
+            data_rx = true;
+//            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
+//            {
+//              memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
+//              numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
+//
+//              fatfs_bsi_data_write(&receivedData[6],244,true); //for testing size is 244
+//            }
+//            else if(numBytes > 0)//We are still expecting data from a current data set.
+//            {
+//              //memcpy(&bsiData,&receivedData,numBytes);//put the remaining data into an array and pass it to "fatfs_bsi_data_write"
+//              fatfs_bsi_data_write(&receivedData,numBytes,false);
+//              numBytes -= sizeof(receivedData);
+//            }
 
             //memcpy(receivedData,p_ble_nus_evt->p_data,251);
             //ble_nus_chars_received_uart_print(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
@@ -934,6 +935,23 @@ int main(void)
 
     for (;;)
     {
+      if(data_rx)
+      {
+            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
+            {
+              memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
+              numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
+
+              fatfs_bsi_data_write(&receivedData[6],238,true); //for testing size is 244
+            }
+            else if(numBytes > 0)//We are still expecting data from a current data set.
+            {
+              //memcpy(&bsiData,&receivedData,numBytes);//put the remaining data into an array and pass it to "fatfs_bsi_data_write"
+              fatfs_bsi_data_write(&receivedData,numBytes,false);
+              numBytes -= sizeof(receivedData);
+            }
+            data_rx = false;
+      }
         idle_state_handle();
     }
 }

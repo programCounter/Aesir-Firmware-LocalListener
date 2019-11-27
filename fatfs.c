@@ -160,30 +160,32 @@ void fatfs_write(fatfs_write_buffer_t fatfs_buffer)
     uint32_t bytes_written;
     FRESULT ff_result;
 
-    #ifdef DEBUG
-    //printf("Opening File BSI_Name... \n");
+    #ifdef DEMO_WRITE
+    printf("Opening File BSI_Name... \n");
     #endif
 
     ff_result = f_open(&file, BSI_Attribute.BSI_Name, FA_READ | FA_WRITE | FA_OPEN_APPEND);
     if (ff_result != FR_OK)
     {
-      #ifdef DEBUG
-      //printf("Unable to open or create file: BSI_Name.\n");  
+      #ifdef DEMO_WRITE
+      printf("Unable to open or create file: BSI_Name.\n");  
       #endif
     }
-    
-    //printf("Writing to file BSI_Name...\n");
+
+    #ifdef DEMO_WRITE
+    printf("Writing to file BSI_Name...\n");
+    #endif
     ff_result = f_write(&file, fatfs_buffer.data, fatfs_buffer.length, (UINT *) &bytes_written);
     if (ff_result != FR_OK)
     {
-      #ifdef DEBUG
-      //printf("Write failed\r\n.");
+      #ifdef DEMO_WRITE
+      printf("Write failed\r\n.");
       #endif
     }
    else
    {
-      #ifdef DEBUG
-      //printf("%d bytes written.\n", bytes_written);
+      #ifdef DEMO_WRITE
+      printf("%d bytes written.\n", bytes_written);
       #endif
       fatfs_buffer.length = 0;
    }
@@ -194,6 +196,8 @@ void fatfs_write(fatfs_write_buffer_t fatfs_buffer)
 void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length, bool first_rx)//need to pass array and length
 {
     uint16_t rx_data_16bit[rx_length];
+    uint8_t  rx_new_data_8bit[256];
+
     //bool first_rx;         //for testing this may need to be global for final implementation
     char SensorValStr[6];
     uint8_t CurrentTimeTemp[8];
@@ -204,135 +208,63 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length, bool first_
     //16 bytes for friendly name
     //8 bytes for time
     //only run on initial call 
-    //for debugging
-    #ifdef DEBUG
-    first_rx = true;  
-    #endif
-
+    memcpy(rx_new_data_8bit, rx_data_8bit, 256);
     if(first_rx)
     {
-      memcpy(BSI_Attribute.BSI_Name, rx_data_8bit, 16);
+      memcpy(BSI_Attribute.BSI_Name, rx_new_data_8bit, 16);
       //strncat(BSI_Attribute.BSI_Name, &rx_data_8bit[0], 16);  //first 16 bits are reserved for the friendly name
       strcat(BSI_Attribute.BSI_Name, ".txt");
-      memmove(rx_data_8bit, &rx_data_8bit[16], (rx_length - 16));      //shift the array by 16 
-      strncat(BSI_Attribute.Start_Time, rx_data_8bit, 6); //next 6 bits are reserved for the time
-      memmove(rx_data_8bit, &rx_data_8bit[6], (rx_length - 22));       //shift the array by 6
-      memset(&rx_data_8bit[rx_length-22], 0, 22);                  //set last 22 values of array to null as they are no longer valid. 
+      memmove(rx_new_data_8bit, &rx_new_data_8bit[16], (rx_length - 16));      //shift the array by 16 
+      memcpy(BSI_Attribute.Start_Time, rx_new_data_8bit, 6); //next 6 bits are reserved for the time
+      memmove(rx_new_data_8bit, &rx_new_data_8bit[6], (rx_length - 22));       //shift the array by 6
+      memset(&rx_new_data_8bit[rx_length-22], 0, 22);                  //set last 22 values of array to null as they are no longer valid. 
       rx_length = rx_length - 22;                                      //adjust length the proper value
     }
-    
-    //for debugging
-    #ifdef DEBUG
-    first_rx = false;
-    #endif
 
     memset(fatfs_write_buffer.data, 0, SDC_BUFFER_SIZE);      //clear write buffer
     //memcpy(rx_data_16bit, rx_data_8bit, rx_length);         //convert data received to 16 bit big endian
     for(uint16_t count = 0; count <= rx_length; count += 2)   //convert data received to 16 bit lil-endian
     {
-      rx_data_16bit[count/2] = (rx_data_8bit[count] << 8) + rx_data_8bit[count+1];
+      rx_data_16bit[count/2] = (rx_new_data_8bit[count+1] << 8) + rx_new_data_8bit[count];
     }
 
     for(uint16_t inc = 0; inc < (rx_length/2); inc += 2)
     {
-      //fatfs_example();
-      BSI_Data.CountMin = rx_data_16bit[inc];
-      BSI_Data.SensorValue = rx_data_16bit[inc+1];
-      data_ch_decode(&BSI_Data);
-      memset(CurrentTimeStr, 0, 20);
-      strcpy(CurrentTimeTemp, BSI_Attribute.Start_Time);
-      current_time(BSI_Data.CountMin, CurrentTimeStr, CurrentTimeTemp);
+      if((rx_data_16bit[inc] != 0xffff) && (rx_data_16bit[inc+1] != 0xffff))
+      {
+        BSI_Data.CountMin = rx_data_16bit[inc];
+        BSI_Data.SensorValue = rx_data_16bit[inc+1];
+        data_ch_decode(&BSI_Data);
+        memset(CurrentTimeStr, 0, 20);
+        strcpy(CurrentTimeTemp, BSI_Attribute.Start_Time);
+        current_time(BSI_Data.CountMin, CurrentTimeStr, CurrentTimeTemp);
 
-      utoa(BSI_Data.SensorValue, SensorValStr, 10); //convert sensor data to buffer data
-      utoa(BSI_Data.SensorCh, TempStr, 10);         //convert sensor channel to buffer data
+        utoa(BSI_Data.SensorValue, SensorValStr, 10); //convert sensor data to buffer data
+        utoa(BSI_Data.SensorCh, TempStr, 10);         //convert sensor channel to buffer data
       
-       //convert format to [time,ch,data]
-      strcat(fatfs_write_buffer.data, CurrentTimeStr);
-      strcat(fatfs_write_buffer.data, ",");
-      strcat(fatfs_write_buffer.data, TempStr);
-      strcat(fatfs_write_buffer.data, ",");
-      strncat(fatfs_write_buffer.data, SensorValStr, 4);
-      strcat(fatfs_write_buffer.data, "\n");              //format time, channel, data \n
+         //convert format to [time,ch,data]
+        strcat(fatfs_write_buffer.data, CurrentTimeStr);
+        strcat(fatfs_write_buffer.data, ",");
+        strcat(fatfs_write_buffer.data, TempStr);
+        strcat(fatfs_write_buffer.data, ",");
+        strncat(fatfs_write_buffer.data, SensorValStr, 4);
+        strcat(fatfs_write_buffer.data, "\n");              //format time, channel, data \n
       
-      fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);  
-      #ifdef DEBUG
-      //printf("%d \n", inc);
-      #endif
-      if(fatfs_write_buffer.length >= (SDC_BUFFER_SIZE - 25)) //if buffer is full, write data
-      {   
-          //fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);        //update length
-          fatfs_write(fatfs_write_buffer);                                    //write data
-          memset(fatfs_write_buffer.data, 0, SDC_BUFFER_SIZE);                            //clear write buffer   
-          fatfs_write_buffer.length = 0;                                      //clear length
+        fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);  
+        if(fatfs_write_buffer.length >= (SDC_BUFFER_SIZE - 25)) //if buffer is full, write data
+        {   
+            //fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);        //update length
+            fatfs_write(fatfs_write_buffer);                                    //write data
+            memset(fatfs_write_buffer.data, 0, SDC_BUFFER_SIZE);                            //clear write buffer   
+            fatfs_write_buffer.length = 0;                                      //clear length
+        }
       }
+      else{
+     }
 
     }
     fatfs_write_buffer.length = strlen(fatfs_write_buffer.data);              //write whatever is left of the buffer
     fatfs_write(fatfs_write_buffer);
-
-//test header
-//    uint8_t byte_array_hex[254] = {'B', 'S', 'I', 'T', 'E', 'S', 'T', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-//                                  20, 19, 11, 18, 11, 22, 
-//                                  0x0, 0x1, 0x0f, 0xf1, 
-//                                  0x0, 0x2, 0x1c, 0x11, 
-//                                  0x0, 0x3, 0x20, 0x22, 
-//                                  0x0, 0x4, 0x24, 0x21, 
-//                                  0x0, 0x5, 0x28, 0x22, 
-//                                  0x0, 0x6, 0x2c, 0x21, 
-//                                  0x0, 0x7, 0x30, 0x32, 
-//                                  0x0, 0x8, 0x34, 0x31, 
-//                                  0x0, 0x9, 0x38, 0x32, 
-//                                  0x0, 0xa, 0x3c, 0x31, 
-//                                  0x0, 0xb, 0x40, 0x42, 
-//                                  0x0, 0xc, 0x44, 0x41, 
-//                                  0x0, 0xd, 0x48, 0x42, 
-//                                  0x0, 0xe, 0x4c, 0x41, 
-//                                  0x0, 0xf, 0x50, 0x52, 
-//                                  0x0, 0x10, 0x54, 0x51, 
-//                                  0x0, 0x11, 0x58, 0x52, 
-//                                  0x0, 0x12, 0x5c, 0x51, 
-//                                  0x0, 0x13, 0x60, 0x62, 
-//                                  0x0, 0x14, 0x64, 0x61, 
-//                                  0x0, 0x15, 0x68, 0x62, 
-//                                  0x0, 0x16, 0x6c, 0x61, 
-//                                  0x0, 0x17, 0x70, 0x72, 
-//                                  0x0, 0x18, 0x74, 0x71, 
-//                                  0x0, 0x19, 0x78, 0x72, 
-//                                  0x0, 0x1a, 0x7c, 0x71, 
-//                                  0x0, 0x1b, 0x80, 0x82, 
-//                                  0x0, 0x1c, 0x84, 0x81, 
-//                                  0x0, 0x1d, 0x88, 0x82, 
-//                                  0x0, 0x1e, 0x8c, 0x81, 
-//                                  0x0, 0x1f, 0x90, 0x92, 
-//                                  0x0, 0x20, 0x94, 0x91, 
-//                                  0x0, 0x21, 0x98, 0x92, 
-//                                  0x0, 0x22, 0x9c, 0x91, 
-//                                  0x0, 0x23, 0xa0, 0xa2, 
-//                                  0x0, 0x24, 0xa4, 0xa1, 
-//                                  0x0, 0x25, 0xa8, 0xa2, 
-//                                  0x0, 0x26, 0xac, 0xa1, 
-//                                  0x0, 0x27, 0xb0, 0xb2, 
-//                                  0x0, 0x28, 0xb4, 0xb1, 
-//                                  0x0, 0x29, 0xb8, 0xb2, 
-//                                  0x0, 0x2a, 0xbc, 0xb1, 
-//                                  0x0, 0x2b, 0xc0, 0xc2, 
-//                                  0x0, 0x2c, 0xc4, 0xc1, 
-//                                  0x0, 0x2d, 0xc8, 0xc2, 
-//                                  0x0, 0x2e, 0xcc, 0xc1, 
-//                                  0x0, 0x2f, 0xd0, 0xd2, 
-//                                  0x0, 0x30, 0xd4, 0xd1, 
-//                                  0x0, 0x31, 0xd8, 0xd2, 
-//                                  0x0, 0x32, 0xdc, 0xd1, 
-//                                  0x0, 0x33, 0xe0, 0xe2, 
-//                                  0x0, 0x34, 0xe4, 0xe1,
-//                                  0x0, 0x35, 0xe8, 0xe2, 
-//                                  0x0, 0x36, 0xec, 0xe1, 
-//                                  0x0, 0x37, 0xf0, 0xf2, 
-//                                  0x0, 0x38, 0xf4, 0xf1, 
-//                                  0x0, 0x39, 0xf8, 0xf2, 
-//                                  0x0, 0x3a, 0xfc, 0xf1, 
-//                                  };
-//    uint16_t byte_array_hex_length = 254;
 }
 
 /**
@@ -358,7 +290,9 @@ void fatfs_init()
     if (disk_state)
     {
         //NRF_LOG_INFO("Disk initialization failed.");
-        //printf("Disk initialization failed.\n");
+        #ifdef DEMO_WRITE
+        printf("Disk initialization failed.\n");
+        #endif
         return;
     }
 
@@ -370,7 +304,9 @@ void fatfs_init()
     if (ff_result)
     {
         //NRF_LOG_INFO("Mount failed.");
-        //printf("Mount failed.\n");
+        #ifdef DEMO_WRITE
+        printf("Mount failed.\n");
+        #endif
         return;
     }
 
@@ -379,7 +315,9 @@ void fatfs_init()
     if (ff_result)
     {
         //NRF_LOG_INFO("Directory listing failed!");
-        //printf("Directory listing failed!\n");
+        #ifdef DEMO_WRITE
+        printf("Directory listing failed!\n");
+        #endif
         return;
     }
 
@@ -389,7 +327,9 @@ void fatfs_init()
         if (ff_result != FR_OK)
         {
             //NRF_LOG_INFO("Directory read failed.");
-            //printf("Directory read failed.\n");
+            #ifdef DEMO_WRITE
+            printf("Directory read failed.\n");
+            #endif
             return;
         }
 
@@ -407,7 +347,9 @@ void fatfs_init()
     }
     while (fno.fname[0]);
     //NRF_LOG_RAW_INFO("");
-    //printf("fatfs init complete\n");
+    #ifdef DEMO_WRITE
+    printf("fatfs init complete\n");
+    #endif
     return;
 }
 

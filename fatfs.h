@@ -17,7 +17,7 @@ typedef struct fatfs_write_buffer_t_ {
 } fatfs_write_buffer_t;
 
 typedef struct BSI_Att_t_ {
-      char BSI_Name[16];
+      char BSI_Name[20];
       uint8_t Start_Time[8];
 }BSI_Att_t;
 

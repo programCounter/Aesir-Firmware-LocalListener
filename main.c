@@ -939,10 +939,11 @@ int main(void)
       {
             if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
             {
-              memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
-              numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
+              numBytes = (receivedData[5] << 8) + receivedData[4] + 22;
+              //memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
+              //numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
 
-              fatfs_bsi_data_write(&receivedData[6],238,true); //for testing size is 244
+              fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
             }
             else if(numBytes > 0)//We are still expecting data from a current data set.
             {

@@ -66,6 +66,7 @@
 #include "nrf_ble_gatt.h"
 #include "nrf_pwr_mgmt.h"
 #include "nrf_ble_scan.h"
+#include "nrf_drv_clock.h"
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -102,7 +103,7 @@ NRF_BLE_SCAN_DEF(m_scan);                                               /**< Sca
 BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE Nordic UART Service (NUS) client instance. */
 
 static char const m_target_periph_name[] = "AEsir9";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
-static bool data_rx;
+static bool data_rx = false;
 
 //static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 static uint16_t m_ble_nus_max_data_len = NRF_SDH_BLE_GATT_MAX_MTU_SIZE - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -116,7 +117,7 @@ static ble_uuid_t const m_nus_uuid =
     .uuid = BLE_UUID_NUS_SERVICE,
     .type = NUS_SERVICE_UUID_TYPE
 };
-static uint8_t receivedData[255];
+static uint8_t receivedData[4124]; //size of 1 sector + header from the qspi flash
     
 
 /**@brief Function for handling asserts in the SoftDevice.
@@ -343,15 +344,16 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
             if (ble_conn_state_central_conn_count() == 0)
             {
-                err_code = app_button_disable();
-                APP_ERROR_CHECK(err_code);
+                //err_code = app_button_disable();
+               // NRF_LOG_INFO("err_Code %x",err_code);
+                //APP_ERROR_CHECK(err_code);
 
                 // Turn off the LED that indicates the connection.
                 bsp_board_led_off(CENTRAL_CONNECTED_LED);
             }
 
             // Start scanning.
-  //          scan_start();
+          scan_start();
 
             // Turn on the LED for indicating scanning.
   //          bsp_board_led_on(CENTRAL_SCANNING_LED);
@@ -553,33 +555,18 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
 //            .BSI_Name = {},
 //            .Start_Time = {},
 //            };
-
+            
             //There is a max of 242 bytes in each uart packet, 29 bytes of the first packet is used for admin data. 
-            NRF_LOG_INFO("data from NUS.");
+            //NRF_LOG_INFO("data from NUS.");
             memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
             //NRF_LOG_HEXDUMP_DEBUG(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
-            //NRF_LOG_INFO(receivedData);
+            NRF_LOG_INFO(receivedData);
             for(int nn = 0; nn < 255; nn++)
             {
-              NRF_LOG_INFO("0x%X(%d)", receivedData[nn], 255);
+
+              //NRF_LOG_INFO("0x%X(%d)", receivedData[nn], 255);
             }
             data_rx = true;
-//            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
-//            {
-//              memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
-//              numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
-//
-//              fatfs_bsi_data_write(&receivedData[6],244,true); //for testing size is 244
-//            }
-//            else if(numBytes > 0)//We are still expecting data from a current data set.
-//            {
-//              //memcpy(&bsiData,&receivedData,numBytes);//put the remaining data into an array and pass it to "fatfs_bsi_data_write"
-//              fatfs_bsi_data_write(&receivedData,numBytes,false);
-//              numBytes -= sizeof(receivedData);
-//            }
-
-            //memcpy(receivedData,p_ble_nus_evt->p_data,251);
-            //ble_nus_chars_received_uart_print(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
             break;
 
         case BLE_NUS_C_EVT_DISCONNECTED:
@@ -848,6 +835,8 @@ NRF_PWR_MGMT_HANDLER_REGISTER(shutdown_handler, APP_SHUTDOWN_HANDLER_PRIORITY);
 
 int main(void)
 {
+    ret_code_t err_code;
+    
     // Initialize.
     log_init();
     timer_init();
@@ -864,75 +853,13 @@ int main(void)
     scan_init();
     nrf_delay_ms(50);
     fatfs_init();
-    
-    uint8_t byte_array_hex[254] = {'B', 'S', 'I', 'T', 'E', 'S', 'T', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                  20, 19, 11, 18, 11, 22, 
-                                  0x0, 0x1, 0x0f, 0xf1, 
-                                  0x0, 0x2, 0x1c, 0x11, 
-                                  0x0, 0x3, 0x20, 0x22, 
-                                  0x0, 0x4, 0x24, 0x21, 
-                                  0x0, 0x5, 0x28, 0x22, 
-                                  0x0, 0x6, 0x2c, 0x21, 
-                                  0x0, 0x7, 0x30, 0x32, 
-                                  0x0, 0x8, 0x34, 0x31, 
-                                  0x0, 0x9, 0x38, 0x32, 
-                                  0x0, 0xa, 0x3c, 0x31, 
-                                  0x0, 0xb, 0x40, 0x42, 
-                                  0x0, 0xc, 0x44, 0x41, 
-                                  0x0, 0xd, 0x48, 0x42, 
-                                  0x0, 0xe, 0x4c, 0x41, 
-                                  0x0, 0xf, 0x50, 0x52, 
-                                  0x0, 0x10, 0x54, 0x51, 
-                                  0x0, 0x11, 0x58, 0x52, 
-                                  0x0, 0x12, 0x5c, 0x51, 
-                                  0x0, 0x13, 0x60, 0x62, 
-                                  0x0, 0x14, 0x64, 0x61, 
-                                  0x0, 0x15, 0x68, 0x62, 
-                                  0x0, 0x16, 0x6c, 0x61, 
-                                  0x0, 0x17, 0x70, 0x72, 
-                                  0x0, 0x18, 0x74, 0x71, 
-                                  0x0, 0x19, 0x78, 0x72, 
-                                  0x0, 0x1a, 0x7c, 0x71, 
-                                  0x0, 0x1b, 0x80, 0x82, 
-                                  0x0, 0x1c, 0x84, 0x81, 
-                                  0x0, 0x1d, 0x88, 0x82, 
-                                  0x0, 0x1e, 0x8c, 0x81, 
-                                  0x0, 0x1f, 0x90, 0x92, 
-                                  0x0, 0x20, 0x94, 0x91, 
-                                  0x0, 0x21, 0x98, 0x92, 
-                                  0x0, 0x22, 0x9c, 0x91, 
-                                  0x0, 0x23, 0xa0, 0xa2, 
-                                  0x0, 0x24, 0xa4, 0xa1, 
-                                  0x0, 0x25, 0xa8, 0xa2, 
-                                  0x0, 0x26, 0xac, 0xa1, 
-                                  0x0, 0x27, 0xb0, 0xb2, 
-                                  0x0, 0x28, 0xb4, 0xb1, 
-                                  0x0, 0x29, 0xb8, 0xb2, 
-                                  0x0, 0x2a, 0xbc, 0xb1, 
-                                  0x0, 0x2b, 0xc0, 0xc2, 
-                                  0x0, 0x2c, 0xc4, 0xc1, 
-                                  0x0, 0x2d, 0xc8, 0xc2, 
-                                  0x0, 0x2e, 0xcc, 0xc1, 
-                                  0x0, 0x2f, 0xd0, 0xd2, 
-                                  0x0, 0x30, 0xd4, 0xd1, 
-                                  0x0, 0x31, 0xd8, 0xd2, 
-                                  0x0, 0x32, 0xdc, 0xd1, 
-                                  0x0, 0x33, 0xe0, 0xe2, 
-                                  0x0, 0x34, 0xe4, 0xe1,
-                                  0x0, 0x35, 0xe8, 0xe2, 
-                                  0x0, 0x36, 0xec, 0xe1, 
-                                  0x0, 0x37, 0xf0, 0xf2, 
-                                  0x0, 0x38, 0xf4, 0xf1, 
-                                  0x0, 0x39, 0xf8, 0xf2, 
-                                  0x0, 0x3a, 0xfc, 0xf1, 
-                                  };
-    uint16_t byte_array_hex_length = 254;
 
     // Start execution.
     NRF_LOG_INFO("Multilink example started.");
     //fatfs_bsi_data_write(&byte_array_hex, byte_array_hex_length,false);
     scan_start();
 
+    data_rx = false;
     for (;;)
     {
       if(data_rx)
@@ -951,7 +878,15 @@ int main(void)
               fatfs_bsi_data_write(&receivedData,numBytes,false);
               numBytes -= sizeof(receivedData);
             }
-            data_rx = false;
+            data_rx = false; //after data is written disconnect
+            NRF_LOG_INFO("Attempting to disconnect");
+            err_code = sd_ble_gap_disconnect(m_ble_nus_c.conn_handle,
+                                             BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+            if (err_code != NRF_ERROR_INVALID_STATE)
+            {
+                APP_ERROR_CHECK(err_code);
+            }
+        NRF_LOG_INFO("disconnected");
       }
         idle_state_handle();
     }

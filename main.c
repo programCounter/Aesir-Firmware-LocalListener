@@ -104,6 +104,9 @@ BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE
 
 static char const m_target_periph_name[] = "AEsir";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
 static bool data_rx = false;
+static bool first_rx = true;
+static uint16_t numBytes; //Holds the total number of bytes expected
+static uint16_t currBytes; //Tracks the current amount of data recived since "###" was sent
 
 //static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 static uint16_t m_ble_nus_max_data_len = NRF_SDH_BLE_GATT_MAX_MTU_SIZE - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -243,8 +246,8 @@ static void scan_start(void)
     ret_code_t ret;
 
     NRF_LOG_INFO("Start scanning for device name %s.", (uint32_t)m_target_periph_name);
-    ret = sd_ble_gap_scan_start(&m_scan_params, &m_scan_buffer);
-    //ret = nrf_ble_scan_start(&m_scan);
+    //ret = sd_ble_gap_scan_start(&m_scan_params, &m_scan_buffer);
+    ret = nrf_ble_scan_start(&m_scan);
     APP_ERROR_CHECK(ret);
     // Turn on the LED to signal scanning.
     bsp_board_led_on(CENTRAL_SCANNING_LED);
@@ -558,8 +561,7 @@ static void uart_init(void)
  */
 
 /**@snippet [Handling events from the ble_nus_c module] */
-uint16_t numBytes; //Holds the total number of bytes expected
-uint16_t currBytes; //Tracks the current amount of data recived since "###" was sent
+
 static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t const * p_ble_nus_evt)
 {
     ret_code_t err_code;
@@ -577,13 +579,26 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             break;
 
         case BLE_NUS_C_EVT_NUS_TX_EVT:
-
-              //redefine the extern struct in fatfs.h // Included here for reference
-//            BSI_Att_t BSI_Attribute = {
-//            .BSI_Name = {},
-//            .Start_Time = {},
-//            };
             
+            if(first_rx)
+            {
+              memset(receivedData, 0, 4124);                                           //clear relavent variables
+              numBytes  = 0;
+              currBytes = 0;
+              memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);   //copy the data received to the data buffer
+              numBytes = (receivedData[5] << 8) + receivedData[4] + 22;             //update the total number of bytes to be received
+              first_rx = false;
+              currBytes += p_ble_nus_evt->data_len;                                 //update the number of bytes that have been received
+            }
+            else
+            {
+              memcpy(&receivedData[currBytes-1],p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
+              currBytes += p_ble_nus_evt->data_len; 
+              if(currBytes >= numBytes)
+              {
+                data_rx = true;
+              }
+            }
             //There is a max of 242 bytes in each uart packet, 29 bytes of the first packet is used for admin data. 
             //NRF_LOG_INFO("data from NUS.");
             memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
@@ -892,21 +907,24 @@ int main(void)
     {
       if(data_rx)
       {
-            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
-            {
-              numBytes = (receivedData[5] << 8) + receivedData[4] + 22;
-              //memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
-              //numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
-
-              fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
-            }
-            else if(numBytes > 0)//We are still expecting data from a current data set.
-            {
-              //memcpy(&bsiData,&receivedData,numBytes);//put the remaining data into an array and pass it to "fatfs_bsi_data_write"
-              fatfs_bsi_data_write(&receivedData,numBytes,false);
-              numBytes -= sizeof(receivedData);
-            }
+        fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
+//            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
+//            {
+//              numBytes = (receivedData[5] << 8) + receivedData[4] + 22;
+//              //memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
+//              //numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
+//              fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
+//              
+//            }
+//            else if(numBytes > 0)//We are still expecting data from a current data set.
+//            {
+//              //memcpy(&bsiData,&receivedData,numBytes);//put the remaining data into an array and pass it to "fatfs_bsi_data_write"
+//              fatfs_bsi_data_write(&receivedData,numBytes,false);
+//              numBytes -= sizeof(receivedData);
+//            }
+            first_rx = true;
             data_rx = false; //after data is written disconnect
+
             NRF_LOG_INFO("Attempting to disconnect");
             err_code = sd_ble_gap_disconnect(m_ble_nus_c.conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);

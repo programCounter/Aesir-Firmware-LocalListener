@@ -102,7 +102,7 @@ BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Dat
 NRF_BLE_SCAN_DEF(m_scan);                                               /**< Scanning Module instance. */
 BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE Nordic UART Service (NUS) client instance. */
 
-static char const m_target_periph_name[] = "AEsir9";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
+static char const m_target_periph_name[] = "AEsir";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
 static bool data_rx = false;
 
 //static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -197,7 +197,7 @@ static void scan_init(void)
 
     init_scan.connect_if_match = true;
     init_scan.conn_cfg_tag     = APP_BLE_CONN_CFG_TAG;
-
+    //init_scan
     err_code = nrf_ble_scan_init(&m_scan, &init_scan, scan_evt_handler);
     APP_ERROR_CHECK(err_code);
 
@@ -210,6 +210,32 @@ static void scan_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+//TEST FROM LONG RANGE UART EAMPLE
+#define SCAN_INTERVAL           0x00A0                                  /**< Determines scan interval in units of 0.625 millisecond. */
+#define SCAN_WINDOW             0x0050                                  /**< Determines scan window in units of 0.625 millisecond. */
+#define SCAN_DURATION           0x0000                                  /**< Timout when scanning. 0x0000 disables timeout. */
+
+static uint8_t m_scan_buffer_data[BLE_GAP_SCAN_BUFFER_EXTENDED_MIN]; /**< buffer where advertising reports will be stored by the SoftDevice. */
+
+/**@brief Pointer to the buffer where advertising reports will be stored by the SoftDevice. */
+static ble_data_t m_scan_buffer =
+{
+    m_scan_buffer_data,
+    BLE_GAP_SCAN_BUFFER_EXTENDED_MIN
+};
+
+/** @brief Parameters used when scanning. */
+static ble_gap_scan_params_t const m_scan_params =
+{
+    .active           = 1,
+    .extended         = 1,
+    .interval         = SCAN_INTERVAL,
+    .window           = SCAN_WINDOW,
+    .timeout          = SCAN_DURATION,
+    .scan_phys        = BLE_GAP_PHY_CODED,
+    .filter_policy    = BLE_GAP_SCAN_FP_ACCEPT_ALL,
+};
+//END TEST
 
 /**@brief Function for starting scanning. */
 static void scan_start(void)
@@ -217,11 +243,13 @@ static void scan_start(void)
     ret_code_t ret;
 
     NRF_LOG_INFO("Start scanning for device name %s.", (uint32_t)m_target_periph_name);
-    ret = nrf_ble_scan_start(&m_scan);
+    ret = sd_ble_gap_scan_start(&m_scan_params, &m_scan_buffer);
+    //ret = nrf_ble_scan_start(&m_scan);
     APP_ERROR_CHECK(ret);
     // Turn on the LED to signal scanning.
     bsp_board_led_on(CENTRAL_SCANNING_LED);
 }
+
 
 
 /**@brief Handles events coming from the LED Button central module.

@@ -202,12 +202,12 @@ static void scan_init(void)
     APP_ERROR_CHECK(err_code);
 
     //err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_UUID_FILTER, &m_nus_uuid);
-    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_NAME_FILTER, m_target_periph_name);
-    APP_ERROR_CHECK(err_code);
+//    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_NAME_FILTER, m_target_periph_name);
+//    APP_ERROR_CHECK(err_code);
 
     //err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_UUID_FILTER, false);
-    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_NAME_FILTER, false);
-    APP_ERROR_CHECK(err_code);
+//    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_NAME_FILTER, false);
+//    APP_ERROR_CHECK(err_code);
 }
 
 //TEST FROM LONG RANGE UART EAMPLE
@@ -298,6 +298,80 @@ static void lbs_c_evt_handler(ble_lbs_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_e
     }
 }
 
+#define MIN_CONNECTION_INTERVAL MSEC_TO_UNITS(20, UNIT_1_25_MS)         /**< Determines minimum connection interval in millisecond. */
+#define MAX_CONNECTION_INTERVAL MSEC_TO_UNITS(75, UNIT_1_25_MS)         /**< Determines maximum connection interval in millisecond. */
+#define SLAVE_LATENCY           0                                       /**< Determines slave latency in counts of connection events. */
+#define SUPERVISION_TIMEOUT     MSEC_TO_UNITS(4000, UNIT_10_MS)         /**< Determines supervision time-out in units of 10 millisecond. */
+
+/**@brief Connection parameters requested for connection. */
+static ble_gap_conn_params_t const m_connection_param =
+{
+    (uint16_t)MIN_CONNECTION_INTERVAL,  // Minimum connection
+    (uint16_t)MAX_CONNECTION_INTERVAL,  // Maximum connection
+    (uint16_t)SLAVE_LATENCY,            // Slave latency
+    (uint16_t)SUPERVISION_TIMEOUT       // Supervision time-out
+};
+
+static uint8_t m_scan_buffer_data[BLE_GAP_SCAN_BUFFER_EXTENDED_MIN]; /**< buffer where advertising reports will be stored by the SoftDevice. */
+
+///**@brief Pointer to the buffer where advertising reports will be stored by the SoftDevice. */
+//static ble_data_t m_scan_buffer =
+//{
+//    m_scan_buffer_data,
+//    BLE_GAP_SCAN_BUFFER_EXTENDED_MIN
+//};
+
+///** @brief Parameters used when scanning. */
+//static ble_gap_scan_params_t const m_scan_params =
+//{
+//    .active   = 1,
+//    .extended = 1,
+//    .interval = SCAN_INTERVAL,
+//    .window   = SCAN_WINDOW,
+//    .timeout          = SCAN_DURATION,
+//    .scan_phys        = BLE_GAP_PHY_CODED,
+//    .filter_policy    = BLE_GAP_SCAN_FP_ACCEPT_ALL,
+//};
+
+/**@brief Function for handling the advertising report BLE event.
+ *
+ * @param[in] p_adv_report  Advertising report from the SoftDevice.
+ */
+static void on_adv_report(ble_gap_evt_adv_report_t const * p_adv_report)
+{
+    ret_code_t err_code;
+
+    NRF_LOG_INFO("ADV. report");
+
+    //if (ble_advdata_uuid_find(p_adv_report->data.p_data, p_adv_report->data.len, &m_nus_uuid))
+    if (ble_advdata_name_find(p_adv_report->data.p_data, p_adv_report->data.len, &m_target_periph_name))
+    {
+        err_code = sd_ble_gap_connect(&p_adv_report->peer_addr,
+                                      &m_scan_params,
+                                      &m_connection_param,
+                                      APP_BLE_CONN_CFG_TAG);
+
+        if (err_code == NRF_SUCCESS)
+        {
+            // scan is automatically stopped by the connect
+            err_code = bsp_indication_set(BSP_INDICATE_IDLE);
+            APP_ERROR_CHECK(err_code);
+            NRF_LOG_INFO("Connecting to target %02x%02x%02x%02x%02x%02x",
+                     p_adv_report->peer_addr.addr[0],
+                     p_adv_report->peer_addr.addr[1],
+                     p_adv_report->peer_addr.addr[2],
+                     p_adv_report->peer_addr.addr[3],
+                     p_adv_report->peer_addr.addr[4],
+                     p_adv_report->peer_addr.addr[5]
+                     );
+        }
+    }
+    else
+    {
+        err_code = sd_ble_gap_scan_start(NULL, &m_scan_buffer);
+        APP_ERROR_CHECK(err_code);
+    }
+}
 
 /**@brief Function for handling BLE events.
  *
@@ -313,6 +387,9 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
     switch (p_ble_evt->header.evt_id)
     {
+       case BLE_GAP_EVT_ADV_REPORT:
+            on_adv_report(&p_gap_evt->params.adv_report);
+            break; // BLE_GAP_EVT_ADV_REPORT
         // Upon connection, check which peripheral is connected, initiate DB
         // discovery, update LEDs status, and resume scanning, if necessary.
         case BLE_GAP_EVT_CONNECTED:
@@ -878,9 +955,9 @@ int main(void)
     ble_conn_state_init();
     gatt_init();
     nus_c_init();
-    scan_init();
+    //scan_init();
     nrf_delay_ms(50);
-    fatfs_init();
+    //fatfs_init();
 
     // Start execution.
     NRF_LOG_INFO("Multilink example started.");

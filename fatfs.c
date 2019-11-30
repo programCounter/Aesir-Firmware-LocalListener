@@ -196,7 +196,7 @@ void fatfs_write(fatfs_write_buffer_t fatfs_buffer)
 void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length, bool first_rx)//need to pass array and length
 {
     uint16_t rx_data_16bit[rx_length];
-    uint8_t  rx_new_data_8bit[256];
+    uint8_t  rx_new_data_8bit[rx_length];
 
     //bool first_rx;         //for testing this may need to be global for final implementation
     char SensorValStr[6];
@@ -208,7 +208,7 @@ void fatfs_bsi_data_write(uint8_t *rx_data_8bit, uint16_t rx_length, bool first_
     //16 bytes for friendly name
     //8 bytes for time
     //only run on initial call 
-    memcpy(rx_new_data_8bit, rx_data_8bit, 256);
+    memcpy(rx_new_data_8bit, rx_data_8bit, rx_length);
     if(first_rx)
     {
       memcpy(BSI_Attribute.BSI_Name, rx_new_data_8bit, 16);

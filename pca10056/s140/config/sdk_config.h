@@ -51,7 +51,7 @@
 #include "app_config.h"
 #endif
 // <h> Application 
-
+#define DEBUG 1
 //==========================================================
 // <o> APP_SHUTDOWN_HANDLER_PRIORITY - Application shutdown observer priority. 
 #ifndef APP_SHUTDOWN_HANDLER_PRIORITY

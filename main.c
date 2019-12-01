@@ -107,6 +107,7 @@ static bool data_rx = false;
 static bool first_rx = true;
 static uint16_t numBytes; //Holds the total number of bytes expected
 static uint16_t currBytes; //Tracks the current amount of data recived since "###" was sent
+static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
 
 //static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 static uint16_t m_ble_nus_max_data_len = NRF_SDH_BLE_GATT_MAX_MTU_SIZE - OPCODE_LENGTH - HANDLE_LENGTH; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -176,6 +177,7 @@ static void scan_evt_handler(scan_evt_t const * p_scan_evt)
                     p_connected->peer_addr.addr[4],
                     p_connected->peer_addr.addr[5]
                     );
+
        } break;
 
        case NRF_BLE_SCAN_EVT_SCAN_TIMEOUT:
@@ -246,8 +248,8 @@ static void scan_start(void)
     ret_code_t ret;
 
     NRF_LOG_INFO("Start scanning for device name %s.", (uint32_t)m_target_periph_name);
-    //ret = sd_ble_gap_scan_start(&m_scan_params, &m_scan_buffer);
-    ret = nrf_ble_scan_start(&m_scan);
+    ret = sd_ble_gap_scan_start(&m_scan_params, &m_scan_buffer);
+    //ret = nrf_ble_scan_start(&m_scan);
     APP_ERROR_CHECK(ret);
     // Turn on the LED to signal scanning.
     bsp_board_led_on(CENTRAL_SCANNING_LED);
@@ -432,8 +434,12 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             {
                 // Resume scanning.
                 bsp_board_led_on(CENTRAL_SCANNING_LED);
-                scan_start();
+                //scan_start();
             }
+
+            m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+
+
         } break; // BLE_GAP_EVT_CONNECTED
        
         case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
@@ -691,7 +697,7 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
 
         case BLE_NUS_C_EVT_DISCONNECTED:
             NRF_LOG_INFO("Disconnected.");
-            scan_start();
+            //scan_start();
             break;
     }
 }
@@ -972,23 +978,24 @@ int main(void)
     nus_c_init();
     //scan_init();
     nrf_delay_ms(50);
-    //fatfs_init();
+    fatfs_init();
 
     // Start execution.
     NRF_LOG_INFO("Multilink example started.");
     //fatfs_bsi_data_write(&byte_array_hex, byte_array_hex_length,false);
     scan_start();
-
+    
     data_rx = false;
     for (;;)
     {
-      if(data_rx)
+     //NRF_LOG_PROCESS();
+      if(data_rx == true)
       {
         fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
 //            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
 //            {
-//              numBytes = (receivedData[5] << 8) + receivedData[4] + 22;
-//              //memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
+              //numBytes = (receivedData[5] << 8) + receivedData[4] + 22;
+              memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
 //              //numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
 //              fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
 //              
@@ -1003,13 +1010,15 @@ int main(void)
             data_rx = false; //after data is written disconnect
 
             NRF_LOG_INFO("Attempting to disconnect");
-            err_code = sd_ble_gap_disconnect(m_ble_nus_c.conn_handle,
+//            err_code = sd_ble_gap_disconnect(m_ble_nus_c.conn_handle,
+//                                             BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+            err_code = sd_ble_gap_disconnect(m_conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
             if (err_code != NRF_ERROR_INVALID_STATE)
             {
                 APP_ERROR_CHECK(err_code);
             }
-        NRF_LOG_INFO("disconnected");
+        //NRF_LOG_INFO("disconnected");
       }
         idle_state_handle();
     }

@@ -102,7 +102,7 @@ BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Dat
 NRF_BLE_SCAN_DEF(m_scan);                                               /**< Scanning Module instance. */
 BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE Nordic UART Service (NUS) client instance. */
 
-static char const m_target_periph_name[] = "AEsir";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
+static char const m_target_periph_name[] = "AEsir5";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
 static bool data_rx = false;
 static bool first_rx = true;
 static uint16_t numBytes; //Holds the total number of bytes expected

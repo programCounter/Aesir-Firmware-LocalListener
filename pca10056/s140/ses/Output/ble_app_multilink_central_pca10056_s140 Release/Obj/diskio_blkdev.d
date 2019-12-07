@@ -1,14 +1,14 @@
 Output/ble_app_multilink_central_pca10056_s140\ Release/Obj/diskio_blkdev.o: \
- C:\dev\nRF5_SDK_15.3.0\external\fatfs\port\diskio_blkdev.c \
- C:\dev\nRF5_SDK_15.3.0\external\fatfs\port\diskio_blkdev.h \
+ C:\Users\kyrel\Desktop\BL654\nRF5_SDK\nRF5_SDK_15.3.0\external\fatfs\port\diskio_blkdev.c \
+ C:\Users\kyrel\Desktop\BL654\nRF5_SDK\nRF5_SDK_15.3.0\external\fatfs\port\diskio_blkdev.h \
  ../../../../../../external/fatfs/src/diskio.h \
  ../../../../../../external/fatfs/src/integer.h \
  ../../../../../../components\libraries\block_dev/nrf_block_dev.h \
  ../../../../../../components/libraries/util/sdk_common.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stdint.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stdbool.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/string.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/__crossworks.h \
+ C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stdint.h \
+ C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stdbool.h \
+ C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/string.h \
+ C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/__crossworks.h \
  ../config/sdk_config.h \
  ../../../../../../components/libraries/util/nordic_common.h \
  ../../../../../../modules/nrfx/mdk/compiler_abstraction.h \
@@ -16,7 +16,7 @@ Output/ble_app_multilink_central_pca10056_s140\ Release/Obj/diskio_blkdev.o: \
  ../../../../../../components/libraries/util/sdk_errors.h \
  ../../../../../../components/softdevice/s140/headers/nrf_error.h \
  ../../../../../../components/libraries/util/app_util.h \
- C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.18/include/stddef.h \
+ C:/Program\ Files/SEGGER/SEGGER\ Embedded\ Studio\ for\ ARM\ 4.22/include/stddef.h \
  ../../../../../../modules/nrfx/mdk/nrf.h \
  ../../../../../../modules/nrfx/mdk/nrf52840.h \
  ../../../../../../components/toolchain/cmsis/include/core_cm4.h \

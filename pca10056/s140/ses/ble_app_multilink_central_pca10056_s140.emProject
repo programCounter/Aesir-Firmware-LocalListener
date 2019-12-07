@@ -135,8 +135,8 @@
       <file file_name="../../../../../../components/softdevice/common/nrf_sdh_soc.c" />
     </folder>
     <folder Name="FATFS">
-      <file file_name="../../../../../../external/fatfs/port/diskio_blkdev.c" />
       <file file_name="../../../../../../external/fatfs/src/ff.c" />
+      <file file_name="../../../../../../external/fatfs/port/diskio_blkdev.c" />
     </folder>
   </project>
   <configuration

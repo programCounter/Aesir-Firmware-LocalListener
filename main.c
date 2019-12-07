@@ -82,8 +82,8 @@
 #define APP_BLE_CONN_CFG_TAG      1                                     /**< Tag that refers to the BLE stack configuration that is set with @ref sd_ble_cfg_set. The default tag is @ref APP_BLE_CONN_CFG_TAG. */
 #define APP_BLE_OBSERVER_PRIO     3                                     /**< BLE observer priority of the application. There is no need to modify this value. */
 
-#define APP_BLE_CONN_CFG_TAG    1                                       /**< Tag that refers to the BLE stack configuration set with @ref sd_ble_cfg_set. The default tag is @ref BLE_CONN_CFG_TAG_DEFAULT. */
-#define APP_BLE_OBSERVER_PRIO   3                                       /**< BLE observer priority of the application. There is no need to modify this value. */
+//#define APP_BLE_CONN_CFG_TAG    1                                       /**< Tag that refers to the BLE stack configuration set with @ref sd_ble_cfg_set. The default tag is @ref BLE_CONN_CFG_TAG_DEFAULT. */
+//#define APP_BLE_OBSERVER_PRIO   3                                       /**< BLE observer priority of the application. There is no need to modify this value. */
 
 #define UART_TX_BUF_SIZE        256                                     /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE        256                                     /**< UART RX buffer size. */
@@ -97,12 +97,13 @@
 #define LEDBUTTON_LED             BSP_BOARD_LED_2                       /**< LED to indicate a change of state of the Button characteristic on the peer. */
 
 NRF_BLE_GATT_DEF(m_gatt);                                               /**< GATT module instance. */
-BLE_LBS_C_ARRAY_DEF(m_lbs_c, NRF_SDH_BLE_CENTRAL_LINK_COUNT);           /**< LED button client instances. */
-BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Database discovery module instances. */
+//BLE_LBS_C_ARRAY_DEF(m_lbs_c, NRF_SDH_BLE_CENTRAL_LINK_COUNT);           /**< LED button client instances. */
+//BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Database discovery module instances. */
+BLE_DB_DISCOVERY_DEF(m_db_disc);    
 NRF_BLE_SCAN_DEF(m_scan);                                               /**< Scanning Module instance. */
 BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE Nordic UART Service (NUS) client instance. */
 
-static char const m_target_periph_name[] = "AEsir5";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
+static char const m_target_periph_name[] = "AEsirKY";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
 static bool data_rx = false;
 static bool first_rx = true;
 static uint16_t numBytes; //Holds the total number of bytes expected
@@ -303,7 +304,7 @@ static void lbs_c_evt_handler(ble_lbs_c_t * p_lbs_c, ble_lbs_c_evt_t * p_lbs_c_e
     }
 }
 
-#define MIN_CONNECTION_INTERVAL MSEC_TO_UNITS(20, UNIT_1_25_MS)         /**< Determines minimum connection interval in millisecond. */
+#define MIN_CONNECTION_INTERVAL MSEC_TO_UNITS(12, UNIT_1_25_MS)         /**< Determines minimum connection interval in millisecond. */
 #define MAX_CONNECTION_INTERVAL MSEC_TO_UNITS(75, UNIT_1_25_MS)         /**< Determines maximum connection interval in millisecond. */
 #define SLAVE_LATENCY           0                                       /**< Determines slave latency in counts of connection events. */
 #define SUPERVISION_TIMEOUT     MSEC_TO_UNITS(4000, UNIT_10_MS)         /**< Determines supervision time-out in units of 10 millisecond. */
@@ -404,10 +405,10 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
             APP_ERROR_CHECK_BOOL(p_gap_evt->conn_handle < NRF_SDH_BLE_CENTRAL_LINK_COUNT);
 
-            err_code = ble_lbs_c_handles_assign(&m_lbs_c[p_gap_evt->conn_handle],
-                                                p_gap_evt->conn_handle,
-                                                NULL);
-            APP_ERROR_CHECK(err_code);
+//            err_code = ble_lbs_c_handles_assign(&m_lbs_c[p_gap_evt->conn_handle],
+//                                                p_gap_evt->conn_handle,
+//                                                NULL);
+//            APP_ERROR_CHECK(err_code);
 
             err_code = ble_nus_c_handles_assign(&m_ble_nus_c, p_ble_evt->evt.gap_evt.conn_handle, NULL);
             APP_ERROR_CHECK(err_code);
@@ -416,7 +417,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             APP_ERROR_CHECK(err_code);
             
             memset(&m_db_disc,0,sizeof(m_db_disc));
-            err_code = ble_db_discovery_start(&m_db_disc[p_gap_evt->conn_handle],
+            err_code = ble_db_discovery_start(&m_db_disc,//[p_gap_evt->conn_handle]
                                               p_gap_evt->conn_handle);
             if (err_code != NRF_ERROR_BUSY)
             {
@@ -456,15 +457,15 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                          p_gap_evt->conn_handle,
                          p_gap_evt->params.disconnected.reason);
 
-            if (ble_conn_state_central_conn_count() == 0)
-            {
-                //err_code = app_button_disable();
-               // NRF_LOG_INFO("err_Code %x",err_code);
-                //APP_ERROR_CHECK(err_code);
-
-                // Turn off the LED that indicates the connection.
-                bsp_board_led_off(CENTRAL_CONNECTED_LED);
-            }
+//            if (ble_conn_state_central_conn_count() == 0)
+//            {
+//                //err_code = app_button_disable();
+//               // NRF_LOG_INFO("err_Code %x",err_code);
+//                //APP_ERROR_CHECK(err_code);
+//
+//                // Turn off the LED that indicates the connection.
+//                bsp_board_led_off(CENTRAL_CONNECTED_LED);
+//            }
 
             // Start scanning.
           scan_start();
@@ -657,7 +658,7 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             APP_ERROR_CHECK(err_code);
 
             err_code = ble_nus_c_tx_notif_enable(p_ble_nus_c);
-            //APP_ERROR_CHECK(err_code);
+            APP_ERROR_CHECK(err_code);
             NRF_LOG_INFO("Connected to device with Nordic UART Service.");
             break;
 
@@ -669,7 +670,7 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
               numBytes  = 0;
               currBytes = 0;
               memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);   //copy the data received to the data buffer
-              numBytes = (receivedData[5] << 8) + receivedData[4] + 22;             //update the total number of bytes to be received
+              numBytes = (receivedData[5] << 8) + receivedData[4];             //update the total number of bytes to be received
               first_rx = false;
               currBytes += p_ble_nus_evt->data_len;                                 //update the number of bytes that have been received
             }
@@ -715,19 +716,19 @@ static void nus_c_init(void)
 }
 
 /**@brief LED Button collector initialization. */
-static void lbs_c_init(void)
-{
-    ret_code_t       err_code;
-    ble_lbs_c_init_t lbs_c_init_obj;
-
-    lbs_c_init_obj.evt_handler = lbs_c_evt_handler;
-
-    for (uint32_t i = 0; i < NRF_SDH_BLE_CENTRAL_LINK_COUNT; i++)
-    {
-        err_code = ble_lbs_c_init(&m_lbs_c[i], &lbs_c_init_obj);
-        APP_ERROR_CHECK(err_code);
-    }
-}
+//static void lbs_c_init(void)
+//{
+//    ret_code_t       err_code;
+//    ble_lbs_c_init_t lbs_c_init_obj;
+//
+//    lbs_c_init_obj.evt_handler = lbs_c_evt_handler;
+//
+//    for (uint32_t i = 0; i < NRF_SDH_BLE_CENTRAL_LINK_COUNT; i++)
+//    {
+//        err_code = ble_lbs_c_init(&m_lbs_c[i], &lbs_c_init_obj);
+//        APP_ERROR_CHECK(err_code);
+//    }
+//}
 
 
 /**@brief Function for initializing the BLE stack.
@@ -766,22 +767,22 @@ static void ble_stack_init(void)
  *
  * @return If successful, NRF_SUCCESS is returned. Otherwise, returns the error code from @ref ble_lbs_led_status_send.
  */
-static ret_code_t led_status_send_to_all(uint8_t button_action)
-{
-    ret_code_t err_code;
-
-    for (uint32_t i = 0; i< NRF_SDH_BLE_CENTRAL_LINK_COUNT; i++)
-    {
-        err_code = ble_lbs_led_status_send(&m_lbs_c[i], button_action);
-        if (err_code != NRF_SUCCESS &&
-            err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
-            err_code != NRF_ERROR_INVALID_STATE)
-        {
-            return err_code;
-        }
-    }
-        return NRF_SUCCESS;
-}
+//static ret_code_t led_status_send_to_all(uint8_t button_action)
+//{
+//    ret_code_t err_code;
+//
+//    for (uint32_t i = 0; i< NRF_SDH_BLE_CENTRAL_LINK_COUNT; i++)
+//    {
+//        err_code = ble_lbs_led_status_send(&m_lbs_c[i], button_action);
+//        if (err_code != NRF_SUCCESS &&
+//            err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
+//            err_code != NRF_ERROR_INVALID_STATE)
+//        {
+//            return err_code;
+//        }
+//    }
+//        return NRF_SUCCESS;
+//}
 
 
 /**@brief Function for handling database discovery events.
@@ -798,7 +799,7 @@ static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
                   p_evt->conn_handle,
                   p_evt->conn_handle);
 
-    ble_lbs_on_db_disc_evt(&m_lbs_c[p_evt->conn_handle], p_evt);
+    //ble_lbs_on_db_disc_evt(&m_lbs_c[p_evt->conn_handle], p_evt);
     ble_nus_c_on_db_disc_evt(&m_ble_nus_c, p_evt);
 }
 
@@ -870,7 +871,7 @@ void gatt_evt_handler(nrf_ble_gatt_t * p_gatt, nrf_ble_gatt_evt_t const * p_evt)
  */
 static void gatt_init(void)
 {
-    ret_code_t err_code = nrf_ble_gatt_init(&m_gatt, NULL);
+    ret_code_t err_code = nrf_ble_gatt_init(&m_gatt, gatt_evt_handler);
     APP_ERROR_CHECK(err_code);
 
     err_code = nrf_ble_gatt_att_mtu_central_set(&m_gatt, NRF_SDH_BLE_GATT_MAX_MTU_SIZE);
@@ -970,9 +971,9 @@ int main(void)
     power_management_init();
     ble_stack_init();
     gatt_init();
-    uart_init();
+    //uart_init();
     db_discovery_init();
-    lbs_c_init();
+    //lbs_c_init();
     ble_conn_state_init();
     gatt_init();
     nus_c_init();
@@ -1018,6 +1019,7 @@ int main(void)
             {
                 APP_ERROR_CHECK(err_code);
             }
+            bsp_board_led_off(CENTRAL_CONNECTED_LED);
         //NRF_LOG_INFO("disconnected");
       }
         idle_state_handle();

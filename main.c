@@ -96,16 +96,20 @@
 #define CENTRAL_CONNECTED_LED     BSP_BOARD_LED_1
 #define LEDBUTTON_LED             BSP_BOARD_LED_2                       /**< LED to indicate a change of state of the Button characteristic on the peer. */
 
+#define CONNECTION_TIMER_TICKS APP_TIMER_TICKS(30000) 
+
 NRF_BLE_GATT_DEF(m_gatt);                                               /**< GATT module instance. */
 //BLE_LBS_C_ARRAY_DEF(m_lbs_c, NRF_SDH_BLE_CENTRAL_LINK_COUNT);           /**< LED button client instances. */
 //BLE_DB_DISCOVERY_ARRAY_DEF(m_db_disc, NRF_SDH_BLE_CENTRAL_LINK_COUNT);  /**< Database discovery module instances. */
 BLE_DB_DISCOVERY_DEF(m_db_disc);    
 NRF_BLE_SCAN_DEF(m_scan);                                               /**< Scanning Module instance. */
-BLE_NUS_C_DEF(m_ble_nus_c);                                             /**< BLE Nordic UART Service (NUS) client instance. */
+BLE_NUS_C_DEF(m_ble_nus_c);
+APP_TIMER_DEF(m_connection_timer_id);                                             /**< BLE Nordic UART Service (NUS) client instance. */
 
-static char const m_target_periph_name[] = "AEsirKY";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
+static char const m_target_periph_name[] = "AEsirKYREL";             /**< Name of the device to try to connect to. This name is searched for in the scanning report data. */
 static bool data_rx = false;
 static bool first_rx = true;
+static bool connection_time_exceeded = false;
 static uint16_t numBytes; //Holds the total number of bytes expected
 static uint16_t currBytes; //Tracks the current amount of data recived since "###" was sent
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
@@ -115,6 +119,9 @@ static uint16_t m_ble_nus_max_data_len = NRF_SDH_BLE_GATT_MAX_MTU_SIZE - OPCODE_
 static void ble_nus_chars_received_uart_print(uint8_t * p_data, uint16_t data_len);
 
 static void scan_start(void);
+static void Connection_timeout_handler(void * p_context);
+static void Connection_timer_start(void);
+static void Connection_timer_stop(void);
 
 /**@brief NUS UUID. */
 static ble_uuid_t const m_nus_uuid =
@@ -123,7 +130,8 @@ static ble_uuid_t const m_nus_uuid =
     .type = NUS_SERVICE_UUID_TYPE
 };
 static uint8_t receivedData[4124]; //size of 1 sector + header from the qspi flash
-    
+uint8_t txcount = 0;
+
 
 /**@brief Function for handling asserts in the SoftDevice.
  *
@@ -660,10 +668,11 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             err_code = ble_nus_c_tx_notif_enable(p_ble_nus_c);
             APP_ERROR_CHECK(err_code);
             NRF_LOG_INFO("Connected to device with Nordic UART Service.");
+            Connection_timer_start();
             break;
 
         case BLE_NUS_C_EVT_NUS_TX_EVT:
-            
+            txcount++;
             if(first_rx)
             {
               memset(receivedData, 0, 4124);                                           //clear relavent variables
@@ -678,26 +687,27 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             {
               memcpy(&receivedData[currBytes-1],p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
               currBytes += p_ble_nus_evt->data_len; 
-              if(currBytes >= numBytes)
+            }
+            if(currBytes >= numBytes)
               {
                 data_rx = true;
               }
-            }
             //There is a max of 242 bytes in each uart packet, 29 bytes of the first packet is used for admin data. 
             //NRF_LOG_INFO("data from NUS.");
-            memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
+            //memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);
             //NRF_LOG_HEXDUMP_DEBUG(p_ble_nus_evt->p_data, p_ble_nus_evt->data_len);
-            NRF_LOG_INFO(receivedData);
-            for(int nn = 0; nn < 255; nn++)
-            {
+            //NRF_LOG_INFO(receivedData);
+            //for(int nn = 0; nn < 255; nn++)
+            //{
 
               //NRF_LOG_INFO("0x%X(%d)", receivedData[nn], 255);
-            }
-            data_rx = true;
+            //}
+            //data_rx = true;
             break;
 
         case BLE_NUS_C_EVT_DISCONNECTED:
             NRF_LOG_INFO("Disconnected.");
+            Connection_timer_stop();
             //scan_start();
             break;
     }
@@ -846,12 +856,37 @@ static void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
-
 /** @brief Function for initializing the timer.
  */
 static void timer_init(void)
 {
     ret_code_t err_code = app_timer_init();
+    APP_ERROR_CHECK(err_code);
+
+    err_code = app_timer_create(&m_connection_timer_id,
+                                APP_TIMER_MODE_SINGLE_SHOT,
+                                Connection_timeout_handler);
+                              
+    APP_ERROR_CHECK(err_code);
+}
+
+static void Connection_timeout_handler(void * p_context)
+{
+   connection_time_exceeded = true; //if the timeout fires then the timeout for that connection has occured and disconnect should follow
+}
+
+static void Connection_timer_start(void)
+{
+    ret_code_t err_code;//Start the 30 second timeout for connection.
+    err_code = app_timer_start(m_connection_timer_id, CONNECTION_TIMER_TICKS, NULL);
+    APP_ERROR_CHECK(err_code);
+}
+
+static void Connection_timer_stop(void)
+{
+    ret_code_t err_code;//Stop the connection timer.
+    connection_time_exceeded = false;
+    err_code = app_timer_stop(m_connection_timer_id);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -959,7 +994,7 @@ static bool shutdown_handler(nrf_pwr_mgmt_evt_t event)
 }
 
 NRF_PWR_MGMT_HANDLER_REGISTER(shutdown_handler, APP_SHUTDOWN_HANDLER_PRIORITY);
-
+uint8_t processcount = 0;
 int main(void)
 {
     ret_code_t err_code;
@@ -987,16 +1022,31 @@ int main(void)
     scan_start();
     
     data_rx = false;
+
     for (;;)
     {
      //NRF_LOG_PROCESS();
-      if(data_rx == true)
+     if(connection_time_exceeded)
+     {  //if timeout handler fires then disconnect and reset all parameters for next receive
+        err_code = sd_ble_gap_disconnect(m_conn_handle,
+                                             BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        if (err_code != NRF_ERROR_INVALID_STATE)
+        {
+            APP_ERROR_CHECK(err_code);
+        }
+        bsp_board_led_off(CENTRAL_CONNECTED_LED);
+        Connection_timer_stop();  
+        first_rx = true;
+        data_rx = false; 
+     }
+      if(data_rx)
       {
+        processcount++;
         fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
 //            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
 //            {
               //numBytes = (receivedData[5] << 8) + receivedData[4] + 22;
-              memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
+              //memcpy(numBytes,&receivedData[4],2); //Copy the number of expected bytes to the numBytes var.
 //              //numBytes -= 5; // minus 3 bytes for ### and 2 for the actual size of the data.
 //              fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
 //              
@@ -1020,6 +1070,7 @@ int main(void)
                 APP_ERROR_CHECK(err_code);
             }
             bsp_board_led_off(CENTRAL_CONNECTED_LED);
+            Connection_timer_stop();
         //NRF_LOG_INFO("disconnected");
       }
         idle_state_handle();

@@ -110,6 +110,8 @@ static char const m_target_periph_name[] = "AEsirKYREL";             /**< Name o
 static bool data_rx = false;
 static bool first_rx = true;
 static bool connection_time_exceeded = false;
+static bool alarmReceived = false;
+
 static uint16_t numBytes; //Holds the total number of bytes expected
 static uint16_t currBytes; //Tracks the current amount of data recived since "###" was sent
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
@@ -679,7 +681,24 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
               numBytes  = 0;
               currBytes = 0;
               memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);   //copy the data received to the data buffer
-              numBytes = (receivedData[5] << 8) + receivedData[4];             //update the total number of bytes to be received
+              if(receivedData[0]=='+'&&receivedData[1]=='+'&&receivedData[2]=='+')
+              {
+                //Alarm ON
+                bsp_board_led_on(3);
+                alarmReceived = true;
+                numBytes = p_ble_nus_evt->data_len;
+              }
+              else if(receivedData[0]=='-'&&receivedData[1]=='-'&&receivedData[2]=='-')
+              {
+                //Alarm OFF
+                bsp_board_led_off(3);
+                alarmReceived = true;
+                numBytes = p_ble_nus_evt->data_len;
+              }
+              else
+              {
+                numBytes = (receivedData[5] << 8) + receivedData[4];             //update the total number of bytes to be received
+              }
               first_rx = false;
               currBytes += p_ble_nus_evt->data_len;                                 //update the number of bytes that have been received
             }
@@ -1041,8 +1060,13 @@ int main(void)
      }
       if(data_rx)
       {
+        //+++ = alarm on
+        //--- = alarm off
         processcount++;
-        fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
+        if(alarmReceived == false)//only want to write if it's actually data.. not an alarm
+        {
+          fatfs_bsi_data_write(&receivedData[6],numBytes,true); //for testing size is 244
+        }
 //            if(receivedData[0] == '#' && receivedData[1] == '#' && receivedData[2] == '#')
 //            {
               //numBytes = (receivedData[5] << 8) + receivedData[4] + 22;

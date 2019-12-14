@@ -218,12 +218,12 @@ static void scan_init(void)
     APP_ERROR_CHECK(err_code);
 
     //err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_UUID_FILTER, &m_nus_uuid);
-//    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_NAME_FILTER, m_target_periph_name);
-//    APP_ERROR_CHECK(err_code);
+    err_code = nrf_ble_scan_filter_set(&m_scan, SCAN_NAME_FILTER, m_target_periph_name); //Sets a filter on the BLE scan so that it will only connect to devices with a specific name.
+    APP_ERROR_CHECK(err_code);
 
     //err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_UUID_FILTER, false);
-//    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_NAME_FILTER, false);
-//    APP_ERROR_CHECK(err_code);
+    err_code = nrf_ble_scan_filters_enable(&m_scan, NRF_BLE_SCAN_NAME_FILTER, false); //Enables the filter.
+    APP_ERROR_CHECK(err_code);
 }
 
 //TEST FROM LONG RANGE UART EAMPLE
@@ -248,7 +248,7 @@ static ble_gap_scan_params_t const m_scan_params =
     .interval         = SCAN_INTERVAL,
     .window           = SCAN_WINDOW,
     .timeout          = SCAN_DURATION,
-    .scan_phys        = BLE_GAP_PHY_CODED,
+    .scan_phys        = BLE_GAP_PHY_CODED,//set so the device only scans on coded PHY, we dont want to connect if the BSI is advertising on 1M thats for the APP.
     .filter_policy    = BLE_GAP_SCAN_FP_ACCEPT_ALL,
 };
 //END TEST
@@ -406,10 +406,12 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
        case BLE_GAP_EVT_ADV_REPORT:
             on_adv_report(&p_gap_evt->params.adv_report);
             break; // BLE_GAP_EVT_ADV_REPORT
-        // Upon connection, check which peripheral is connected, initiate DB
-        // discovery, update LEDs status, and resume scanning, if necessary.
+        
+
         case BLE_GAP_EVT_CONNECTED:
         {
+        	// Upon connection, check which peripheral is connected, initiate DB
+        	// discovery, update LEDs status, and resume scanning, if necessary.
             NRF_LOG_INFO("Connection 0x%x established, starting DB discovery.",
                          p_gap_evt->conn_handle);
 
@@ -419,7 +421,8 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 //                                                p_gap_evt->conn_handle,
 //                                                NULL);
 //            APP_ERROR_CHECK(err_code);
-
+            
+            //Assing connection hnadlers to the Nordic Uart Service
             err_code = ble_nus_c_handles_assign(&m_ble_nus_c, p_ble_evt->evt.gap_evt.conn_handle, NULL);
             APP_ERROR_CHECK(err_code);
 
@@ -434,7 +437,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                 APP_ERROR_CHECK(err_code);
             }
 
-            // Update LEDs status and check whether it is needed to look for more
+            // Update LEDs status and check whether it is needed to look for more// no longer supporting multiple connections
             // peripherals to connect to.
             bsp_board_led_on(CENTRAL_CONNECTED_LED);
             if (ble_conn_state_central_conn_count() == NRF_SDH_BLE_CENTRAL_LINK_COUNT)
@@ -478,7 +481,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 //            }
 
             // Start scanning.
-          scan_start();
+          scan_start(); //when the connection is broken imediatly start scanning for a new device.
 
             // Turn on the LED for indicating scanning.
   //          bsp_board_led_on(CENTRAL_SCANNING_LED);
@@ -573,7 +576,7 @@ void bsp_event_handler(bsp_event_t event)
  *          a string. The string is sent over BLE when the last character received is a
  *          'new line' '\n' (hex 0x0A) or if the string reaches the maximum data length.
  */
-void uart_event_handle(app_uart_evt_t * p_event)
+void uart_event_handle(app_uart_evt_t * p_event) //this code is for if a terminal is connected on the physical uart. Not really needed...
 {
     static uint8_t data_array[BLE_NUS_MAX_DATA_LEN];
     static uint16_t index = 0;
@@ -621,7 +624,7 @@ void uart_event_handle(app_uart_evt_t * p_event)
 }
 
 /**@brief Function for initializing the UART. */
-static void uart_init(void)
+static void uart_init(void)//this code is for if a terminal is connected on the physical uart. Not really needed...
 {
     ret_code_t err_code;
 
@@ -667,28 +670,30 @@ static void ble_nus_c_evt_handler(ble_nus_c_t * p_ble_nus_c, ble_nus_c_evt_t con
             err_code = ble_nus_c_handles_assign(p_ble_nus_c, p_ble_nus_evt->conn_handle, &p_ble_nus_evt->handles);
             APP_ERROR_CHECK(err_code);
 
+            //Set notifications true on the characteristic, the BSI has to wait for this to succeed beofre it can send data or this will never set.
+            //BSI HAS! to wait for this to complete, otherwise the service is busy and it will never set and TX will take for ever.
             err_code = ble_nus_c_tx_notif_enable(p_ble_nus_c);
             APP_ERROR_CHECK(err_code);
             NRF_LOG_INFO("Connected to device with Nordic UART Service.");
             Connection_timer_start();
             break;
 
-        case BLE_NUS_C_EVT_NUS_TX_EVT:
+        case BLE_NUS_C_EVT_NUS_TX_EVT://The Local Listener has received data from the BSI, we store it in an array then write it to the SD
             txcount++;
             if(first_rx)
             {
-              memset(receivedData, 0, 4124);                                           //clear relavent variables
+              memset(receivedData, 0, 4124);                                       //clear relavent variables
               numBytes  = 0;
               currBytes = 0;
-              memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);   //copy the data received to the data buffer
-              if(receivedData[0]=='+'&&receivedData[1]=='+'&&receivedData[2]=='+')
+              memcpy(receivedData,p_ble_nus_evt->p_data,p_ble_nus_evt->data_len);  //copy the data received to the data buffer
+              if(receivedData[0]=='+'&&receivedData[1]=='+'&&receivedData[2]=='+') // An alarm state was sent by the BSI
               {
                 //Alarm ON
                 bsp_board_led_on(3);
                 alarmReceived = true;
                 numBytes = p_ble_nus_evt->data_len;
               }
-              else if(receivedData[0]=='-'&&receivedData[1]=='-'&&receivedData[2]=='-')
+              else if(receivedData[0]=='-'&&receivedData[1]=='-'&&receivedData[2]=='-')// An alarm clear state was sent by the BSI
               {
                 //Alarm OFF
                 bsp_board_led_off(3);
